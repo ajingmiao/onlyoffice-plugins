@@ -9,7 +9,7 @@
       "url": "index.html",
       "EditorsSupport": ["word"],      
       "isDisplayedInViewer": false,
-      "events": ["onSelectionChanged", "onDocumentContentReady"]  
+      "events": ["onSelectionChanged", "onDocumentContentReady", "onClick", "onHyperLinkClick"]  
     }
   ]
 }

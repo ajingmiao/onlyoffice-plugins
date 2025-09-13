@@ -32,12 +32,15 @@ export class CommandBus {
 
 
       case COMMANDS.INSERT_LINK: {
-        // 允许 data 是字符串（显示文本），或对象 { text, url, color, bold, underline }
+        // 允许 data 是字符串（显示文本），或对象 { text, url, color, bold, underline, json }
         const text = (typeof data === 'string') ? data : (data?.text || '点击这里');
         const url  = (typeof data === 'object' && data?.url !== undefined) ? data.url : ''; // 允许空
+        const json = (typeof data === 'object' && data?.json !== undefined) ? data.json : null;
+
         await this.link.insertLinkInline({
           text,
           url,
+          json,
           style: {
             bold: (typeof data === 'object' && data?.bold !== undefined) ? !!data.bold : true,
             underline: (typeof data === 'object' && data?.underline !== undefined) ? !!data.underline : true,
@@ -48,6 +51,15 @@ export class CommandBus {
         return { ok: true };
       }
 
+      case COMMANDS.LINK_CLICKED: {
+        const linkData = await this.link.handleLinkClick();
+        if (linkData) {
+          // 发送链接数据回宿主页面
+          return { ok: true, data: linkData };
+        } else {
+          return { ok: false, error: 'No link data found at current position' };
+        }
+      }
 
       default:
         return { ok: false, error: 'Unknown command' };

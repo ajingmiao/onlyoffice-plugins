@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//e/code/onlyoffice-plugin-demo/src/**)",
+      "WebSearch",
+      "WebFetch(domain:api.onlyoffice.com)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

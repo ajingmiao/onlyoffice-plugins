@@ -1,7 +1,8 @@
 export const COMMANDS = {
     INSERT_TEXT: 'insertText',
     REPORT_ACTIVE_SDT: 'reportActiveSdt',
-    INSERT_LINK: 'insertLink'
+    INSERT_LINK: 'insertLink',
+    LINK_CLICKED: 'linkClicked'
   };
   
   export const EVENTS = {

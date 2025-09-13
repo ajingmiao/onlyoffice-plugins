@@ -1,9 +1,86 @@
 // services/link-service.js
 export class LinkService {
-    constructor(editorService) { this.editor = editorService; }
+    constructor(editorService) {
+        this.editor = editorService;
+    }
+
+    // 处理链接点击事件 - 使用sdt-service.js的exact模式
+    async handleLinkClick() {
+        return new Promise((resolve) => {
+            this.editor.runInDoc(function () {
+                var doc = Api.GetDocument();
+                var range = doc.GetRangeBySelect();
+
+                console.log('=== Handling link click (sdt-service pattern) ===');
+                console.log('Current range:', range);
+
+                if (!range) {
+                    console.log('No range selected');
+                    return null;
+                }
+
+                // 完全按照sdt-service.js的方式检测控件
+                var ctrls = doc.GetAllContentControls();
+                console.log('Found content controls:', ctrls.length);
+
+                for (var i = 0; i < ctrls.length; i++) {
+                    var ctrl = ctrls[i];
+                    console.log('Checking control', i, 'with tag:', ctrl.GetTag ? ctrl.GetTag() : 'no tag');
+
+                    // 使用与sdt-service.js完全相同的hit检测逻辑
+                    var hit =
+                        (typeof range.IsInContentControl === 'function' && range.IsInContentControl(ctrl)) ||
+                        (typeof ctrl.IsRangeIn === 'function' && ctrl.IsRangeIn(range)) ||
+                        (typeof ctrl.IsSelected === 'function' && ctrl.IsSelected());
+
+                    console.log('Control hit status:', hit);
+
+                    if (hit) {
+                        // 检查是否是我们的链接控件
+                        var tag = ctrl.GetTag ? ctrl.GetTag() : '';
+                        if (tag && tag.startsWith('link-data:')) {
+                            console.log('Found link control!');
+                            try {
+                                var jsonStr = tag.substring('link-data:'.length);
+                                var jsonData = jsonStr ? JSON.parse(jsonStr) : {};
+
+                                // 返回控件信息和数据
+                                var result = {
+                                    controlId: ctrl.GetId ? ctrl.GetId() : 'unknown',
+                                    controlTitle: ctrl.GetAlias ? ctrl.GetAlias() : '',
+                                    tag: tag,
+                                    data: jsonData
+                                };
+
+                                console.log('Link click detected, returning data:', result);
+                                return result;
+                            } catch (e) {
+                                console.log('Error parsing link data:', e);
+                                return null;
+                            }
+                        }
+                    }
+                }
+
+                console.log('No link control found at current position');
+                return null;
+
+            }, { async: false, cb: (res) => resolve(res) });
+        });
+    }
 
     insertLinkInline(opts) {
         const options = opts || {};
+
+        // 设置 Asc.scope 让文档内脚本能访问
+        window.Asc = window.Asc || {};
+        window.Asc.scope = {
+            text: options.text || '点击这里',
+            url: options.url || '',
+            style: options.style || {},
+            json: options.json || ''
+        };
+
         return this.editor.runInDoc(function () {
             var doc = Api.GetDocument();
 
@@ -13,6 +90,7 @@ export class LinkService {
             var style = (Asc.scope && Asc.scope.style) || {};
             var bold = (style.bold !== undefined) ? !!style.bold : true;
             var underline = (style.underline !== undefined) ? !!style.underline : true;
+            var json = (Asc.scope && Asc.scope.json) || '';
 
             function toRgb(c) {
                 if (!c) return [25, 118, 210];                       // 默认 #1976D2
@@ -25,75 +103,83 @@ export class LinkService {
             }
             var rgb = toRgb(style.color);
 
-            // 原始是否为空（用于占位标记）
-            var rawEmpty = !(url && String(url).trim());
-            var finalUrl = rawEmpty ? 'about:blank' : url;
+            console.log('=== Link insertion (using sdt-service pattern) ===');
+            console.log('Parameters:', { text: text, url: url, json: json, style: style });
+            console.log('RGB color:', rgb);
+            console.log('Bold:', bold, 'Underline:', underline);
 
-            // Run + 样式
-            var run = Api.CreateRun();
-            run.AddText(text);
-            run.SetBold && run.SetBold(bold);
-            run.SetUnderline && run.SetUnderline(underline);
-            run.SetColor && run.SetColor(rgb[0], rgb[1], rgb[2]);
+            var jsonData = json ? JSON.stringify(json) : '';
 
-            // 超链接（有 API 用超链，缺失则退化为“像链接”的文本）
-            var hyperlink = null;
-            if (typeof Api.CreateHyperlink === 'function') {
-                try {
-                    hyperlink = Api.CreateHyperlink(finalUrl, text);
-                    hyperlink.SetBold && hyperlink.SetBold(bold);
-                    hyperlink.SetUnderline && hyperlink.SetUnderline(underline);
-                    hyperlink.SetColor && hyperlink.SetColor(rgb[0], rgb[1], rgb[2]);
-                } catch (e) {
-                    try { hyperlink = Api.CreateHyperlink(finalUrl, run); } catch (e2) { hyperlink = null; }
+            try {
+                if (!url || !String(url).trim()) {
+                    // 空URL - 完全参考sdt-service.js的成功模式
+                    var sdt = doc.AddComboBoxContentControl();
+
+                    // 设置Tag - 用于数据绑定和识别
+                    sdt.SetTag('link-data:' + jsonData);
+                    if (sdt.SetAlias) {
+                        sdt.SetAlias('可点击链接');
+                    }
+
+                    // 清空默认内容
+                    var content = sdt.GetContent();
+                    content.RemoveAllElements();
+                    var p = content.GetElement(0);
+
+                    // 添加带链接样式的文本
+                    if (p) {
+                        var run = Api.CreateRun();
+                        run.AddText(text);
+
+                        // 确保样式设置成功
+                        console.log('Setting text styles...');
+                        if (run.SetBold) {
+                            var boldResult = run.SetBold(bold);
+                            console.log('Set bold result:', boldResult, 'value:', bold);
+                        }
+                        if (run.SetUnderline) {
+                            var underlineResult = run.SetUnderline(underline);
+                            console.log('Set underline result:', underlineResult, 'value:', underline);
+                        }
+                        if (run.SetColor) {
+                            var colorResult = run.SetColor(rgb[0], rgb[1], rgb[2]);
+                            console.log('Set color result:', colorResult, 'RGB:', rgb[0], rgb[1], rgb[2]);
+                        }
+
+                        console.log('Text run created with text:', text);
+                        p.AddElement(run);
+                    }
+
+                    console.log('Added content control with JSON data binding at cursor position');
+                } else {
+                    // 有URL - 使用真实超链接
+                    var sdt = doc.AddComboBoxContentControl();
+                    sdt.SetTag('link-data:' + jsonData);
+                    if (sdt.SetAlias) {
+                        sdt.SetAlias('超链接: ' + url);
+                    }
+
+                    var content = sdt.GetContent();
+                    content.RemoveAllElements();
+                    var p = content.GetElement(0);
+
+                    if (p) {
+                        // 创建超链接元素
+                        var hyperlink = Api.CreateHyperlink(url, text);
+                        if (hyperlink.SetBold) hyperlink.SetBold(bold);
+                        if (hyperlink.SetUnderline) hyperlink.SetUnderline(underline);
+                        if (hyperlink.SetColor) hyperlink.SetColor(rgb[0], rgb[1], rgb[2]);
+                        p.AddElement(hyperlink);
+                    }
+
+                    console.log('Added hyperlink content control at cursor position');
                 }
-            }
 
-            // 插入位置
-            var range = doc.GetRangeBySelect();
+                console.log('Link insertion completed successfully');
 
-            // 1) 优先：让文档自己在光标处插入
-            if (typeof doc.AddHyperlink === 'function') {
-                // 直接在光标处插入链接（返回的对象通常就是超链）
-                var hl = doc.AddHyperlink(finalUrl, text);
-
-                // 如果返回对象支持样式，则按需设样式
-                if (hl) {
-                    if (hl.SetBold) hl.SetBold(bold);
-                    if (hl.SetUnderline) hl.SetUnderline(underline);
-                    if (hl.SetColor) hl.SetColor(rgb[0], rgb[1], rgb[2]);
-                }
-            } else if (hyperlink) {
-                // 2) 次选：我们已创建好 hyperlink 对象 → 退回段末插入
-                var p = (range && range.GetParagraph) ? range.GetParagraph() : doc.GetElement(0);
-                if (!p) { p = Api.CreateParagraph(); doc.Push(p); }
-                p.AddElement(hyperlink);
-            } else {
-                // 3) 最差：没有超链 API，就插一个“像链接”的 run（蓝+粗+下划线）
-                var p2 = (range && range.GetParagraph) ? range.GetParagraph() : doc.GetElement(0);
-                if (!p2) { p2 = Api.CreateParagraph(); doc.Push(p2); }
-                p2.AddElement(run);
-            }
-
-            // === 空链接占位打标（可选） ===
-            if (!(url && String(url).trim())) {
-                var sdt = Api.CreateInlineLvlSdt();
-                var mark = Api.CreateRun(); mark.AddText('');
-                sdt.AddElement(mark, 0);
-                sdt.SetTag('link:pending');
-                sdt.SetAlias('空链接占位');
-                // 占位控件也尽量插到“当前段落”
-                var p3 = (range && range.GetParagraph) ? range.GetParagraph() : doc.GetElement(0);
-                if (!p3) { p3 = Api.CreateParagraph(); doc.Push(p3); }
-                p3.AddInlineLvlSdt(sdt);
-            }
-        }, {
-            async: false,
-            // ★ 在调用前把需要的参数放进 Asc.scope
-            scope: {
-                text: options.text,
-                url: options.url,
-                style: { bold: options.bold, underline: options.underline, color: options.color }
+            } catch (e) {
+                console.log('Link insertion failed:', e);
+                console.log('Error stack:', e.stack);
             }
         });
     }

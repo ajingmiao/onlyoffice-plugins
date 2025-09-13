@@ -8,10 +8,40 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
   });
 
   // 选择变化 → 回传当前 SDT 信息（供宿主显示）
-  selection.bindSelectionChange((res) => {
-    logger.info('active SDT:', res);
+  selection.bindSelectionChange(async (res) => {
+    logger.info('=== Selection changed ===');
+    logger.info('Selection result:', res);
     events.emit(EVENTS.SELECTION_CHANGED_FIRED);
     events.emit(EVENTS.ACTIVE_SDT, res);
+
+    // 添加延迟，确保选择已经稳定
+    setTimeout(async () => {
+      try {
+        logger.info('Checking for link control after selection change...');
+        const result = await commands.dispatch({ command: COMMANDS.LINK_CLICKED });
+        logger.info('Link check result:', result);
+
+        if (result.ok && result.data) {
+          logger.info('Link control detected, sending to host:', result.data);
+          host.sendInfo('linkClicked', result.data);
+        } else {
+          logger.info('No link control found at current selection');
+        }
+      } catch (e) {
+        logger.info('Selection change not on link control:', e.message);
+      }
+    }, 100); // 100ms 延迟
+  });
+
+  // 超链接点击事件处理
+  plugin.onHyperLinkClick(async (data) => {
+    logger.info('hyperlink clicked:', data);
+    // 当点击超链接时，检查是否是我们的数据绑定链接
+    const result = await commands.dispatch({ command: COMMANDS.LINK_CLICKED });
+    if (result.ok && result.data) {
+      // 将链接数据发送回宿主页面
+      host.sendInfo('linkClicked', result.data);
+    }
   });
 
   // 宿主 → 内部命令（如 insertText）
