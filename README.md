@@ -21,3 +21,31 @@ sdkjs-plugins/demo-clean/
 └─ handlers/
    ├─ insert-text.js          // 用例：插入占位符（行内控件）
    └─ report-active-sdt.js    // 用例：回传当前激活SDT信息
+
+
+
+每个模块只做一件事，例如 sdt-service 只处理内容控件读写。
+
+依赖倒置：应用层（handlers）依赖服务接口，不直接依赖底层 API；Asc API 统一通过 plugin-bridge 暴露。
+
+显式边界：宿主通信集中在 host-bridge，避免业务代码到处 window.parent...。
+
+可测性：handlers 是纯函数（或接近），方便未来做单元测试（可传入 mock service）。
+
+无副作用启动：入口只做装配与订阅；真正业务都通过 CommandBus 驱动。
+
+
+
+
+constants：新增命令常量
+
+services：新建 xxx-service.js，只负责文档端 callCommand
+
+container：装配并注入 new XxxService(editor)
+
+command-bus：新增 case，把命令路由到新 Service
+
+host（可选）：新增按钮或调用 serviceCommandSafe('yourCommand', data)
+
+日志/回执：插件端打印日志并用 sendInfo('pluginAck' | 'pluginError') 回宿主
+

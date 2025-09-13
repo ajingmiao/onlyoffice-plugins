@@ -1,6 +1,7 @@
 export const COMMANDS = {
-    INSERT_TEXT: 'insertText',      // 宿主下发：插入占位文本/控件
-    REPORT_ACTIVE_SDT: 'reportActiveSdt'
+    INSERT_TEXT: 'insertText',
+    REPORT_ACTIVE_SDT: 'reportActiveSdt',
+    INSERT_LINK: 'insertLink'
   };
   
   export const EVENTS = {

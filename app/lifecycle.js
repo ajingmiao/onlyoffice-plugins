@@ -18,7 +18,7 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
   host.onInternalCommand(async (msg) => {
     // 约束：只处理我们关注的命令
     if (!msg?.command) return;
-    if (![COMMANDS.INSERT_TEXT, COMMANDS.REPORT_ACTIVE_SDT].includes(msg.command)) return;
+    //if (![COMMANDS.INSERT_TEXT, COMMANDS.REPORT_ACTIVE_SDT].includes(msg.command)) return;
 
     // 兼容字符串与 {text:'...'} 入参
     const data = msg.data;
