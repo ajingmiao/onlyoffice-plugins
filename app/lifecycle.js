@@ -17,18 +17,31 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
     // 添加延迟，确保选择已经稳定
     setTimeout(async () => {
       try {
+        // 检查链接控件
         logger.info('Checking for link control after selection change...');
-        const result = await commands.dispatch({ command: COMMANDS.LINK_CLICKED });
-        logger.info('Link check result:', result);
+        const linkResult = await commands.dispatch({ command: COMMANDS.LINK_CLICKED });
+        logger.info('Link check result:', linkResult);
 
-        if (result.ok && result.data) {
-          logger.info('Link control detected, sending to host:', result.data);
-          host.sendInfo('linkClicked', result.data);
+        if (linkResult.ok && linkResult.data) {
+          logger.info('Link control detected, sending to host:', linkResult.data);
+          host.sendInfo('linkClicked', linkResult.data);
         } else {
           logger.info('No link control found at current selection');
         }
+
+        // 检查表格点击
+        logger.info('Checking for table click after selection change...');
+        const tableResult = await commands.dispatch({ command: COMMANDS.TABLE_CLICKED });
+        logger.info('Table check result:', tableResult);
+
+        if (tableResult.ok && tableResult.data) {
+          logger.info('Table click detected, sending to host:', tableResult.data);
+          host.sendInfo('tableClicked', tableResult.data);
+        } else {
+          logger.info('No table found at current selection');
+        }
       } catch (e) {
-        logger.info('Selection change not on link control:', e.message);
+        logger.info('Selection change processing error:', e.message);
       }
     }, 100); // 100ms 延迟
   });

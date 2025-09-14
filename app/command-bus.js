@@ -1,9 +1,12 @@
 import { COMMANDS } from '../core/constants.js';
 
 export class CommandBus {
-  constructor({ sdtService,linkService }) {
+  constructor({ sdtService, linkService, wordArtService, shapeService, tableService }) {
     this.sdt = sdtService;
     this.link = linkService;
+    this.wordart = wordArtService;
+    this.shape = shapeService;
+    this.table = tableService;
   }
 
   async dispatch(cmd) {
@@ -58,6 +61,96 @@ export class CommandBus {
           return { ok: true, data: linkData };
         } else {
           return { ok: false, error: 'No link data found at current position' };
+        }
+      }
+
+      case COMMANDS.INSERT_WORDART: {
+        // 允许 data 包含 WordArt 的各种参数
+        const result = await this.wordart.insertWordArt(data);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'WordArt insertion failed' };
+        }
+      }
+
+      case COMMANDS.INSERT_PRESET_WORDART: {
+        // 预设样式的 WordArt: { preset: 'classic|modern|fun', text: '...' }
+        const preset = data?.preset || 'classic';
+        const text = data?.text;
+        const result = await this.wordart.insertPresetWordArt(preset, text);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Preset WordArt insertion failed' };
+        }
+      }
+
+      case COMMANDS.TEST_SHAPE_INLINE: {
+        // 测试Shape内联插入可能性
+        const result = await this.shape.testShapeInlineInsertion();
+        return { ok: true, data: result };
+      }
+
+      case COMMANDS.INSERT_SHAPE_INLINE: {
+        // 内联插入Shape
+        const result = await this.shape.insertShapeInline(data);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Shape inline insertion failed' };
+        }
+      }
+
+      case COMMANDS.INSERT_SHAPE_PARAGRAPH: {
+        // 段落级别插入Shape（可靠方法）
+        const result = await this.shape.insertShapeInParagraph(data);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Shape paragraph insertion failed' };
+        }
+      }
+
+      case COMMANDS.INSERT_TABLE: {
+        // 插入表格
+        const result = await this.table.insertTable(data);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Table insertion failed' };
+        }
+      }
+
+      case COMMANDS.INSERT_PRESET_TABLE: {
+        // 插入预设表格
+        const preset = data?.preset || 'simple';
+        const customData = data?.customData || {};
+        const result = await this.table.insertPresetTable(preset, customData);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Preset table insertion failed' };
+        }
+      }
+
+      case COMMANDS.INSERT_DYNAMIC_TABLE: {
+        // 插入动态数据表格（从宿主绑定）
+        const result = await this.table.insertDynamicTable(data);
+        if (result && result.success) {
+          return { ok: true, data: result };
+        } else {
+          return { ok: false, error: result?.error || 'Dynamic table insertion failed' };
+        }
+      }
+
+      case COMMANDS.TABLE_CLICKED: {
+        const tableData = await this.table.handleTableClick();
+        if (tableData) {
+          // 发送表格点击数据回宿主页面
+          return { ok: true, data: tableData };
+        } else {
+          return { ok: false, error: 'No table data found at current position' };
         }
       }
 

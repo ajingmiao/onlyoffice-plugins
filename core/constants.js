@@ -2,7 +2,15 @@ export const COMMANDS = {
     INSERT_TEXT: 'insertText',
     REPORT_ACTIVE_SDT: 'reportActiveSdt',
     INSERT_LINK: 'insertLink',
-    LINK_CLICKED: 'linkClicked'
+    LINK_CLICKED: 'linkClicked',
+    INSERT_WORDART: 'insertWordArt',
+    INSERT_PRESET_WORDART: 'insertPresetWordArt',
+    TEST_SHAPE_INLINE: 'testShapeInline',
+    INSERT_SHAPE_PARAGRAPH: 'insertShapeParagraph',
+    INSERT_TABLE: 'insertTable',
+    INSERT_PRESET_TABLE: 'insertPresetTable',
+    INSERT_DYNAMIC_TABLE: 'insertDynamicTable',
+    TABLE_CLICKED: 'tableClicked'
   };
   
   export const EVENTS = {

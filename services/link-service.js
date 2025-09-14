@@ -112,67 +112,115 @@ export class LinkService {
 
             try {
                 if (!url || !String(url).trim()) {
-                    // 空URL - 完全参考sdt-service.js的成功模式
-                    var sdt = doc.AddComboBoxContentControl();
+                    // 保持Content Control以支持点击事件，但尝试不同的样式设置方式
+                    console.log('=== Using Content Control with improved styling ===');
 
-                    // 设置Tag - 用于数据绑定和识别
+                    var sdt = doc.AddComboBoxContentControl();
                     sdt.SetTag('link-data:' + jsonData);
                     if (sdt.SetAlias) {
                         sdt.SetAlias('可点击链接');
                     }
 
-                    // 清空默认内容
                     var content = sdt.GetContent();
                     content.RemoveAllElements();
                     var p = content.GetElement(0);
 
-                    // 添加带链接样式的文本
                     if (p) {
+                        // 方法1: 创建自定义字符样式
+                        var linkStyle = null;
+                        if (typeof doc.CreateStyle === 'function') {
+                            linkStyle = doc.CreateStyle('LinkStyle_' + Date.now(), 'character');
+                            if (linkStyle) {
+                                console.log('Created custom link style');
+                                var styleTextPr = linkStyle.GetTextPr();
+                                if (styleTextPr) {
+                                    if (typeof styleTextPr.SetColor === 'function') {
+                                        styleTextPr.SetColor(rgb[0], rgb[1], rgb[2]);
+                                        console.log('Set style color via TextPr');
+                                    }
+                                    if (typeof styleTextPr.SetBold === 'function') styleTextPr.SetBold(bold);
+                                    if (typeof styleTextPr.SetUnderline === 'function') styleTextPr.SetUnderline(underline);
+                                    console.log('Set style properties');
+                                }
+                            }
+                        }
+
                         var run = Api.CreateRun();
                         run.AddText(text);
 
-                        // 确保样式设置成功
-                        console.log('Setting text styles...');
-                        if (run.SetBold) {
+                        // 方法2: 优先尝试应用自定义样式
+                        if (linkStyle && typeof run.SetStyle === 'function') {
+                            var styleResult = run.SetStyle(linkStyle);
+                            console.log('Applied custom style result:', styleResult);
+                        }
+
+                        // 方法3: 设置直接样式属性
+                        console.log('Setting direct styles...');
+                        console.log('Available run methods:', Object.getOwnPropertyNames(run).filter(name => name.includes('Set')));
+
+                        if (typeof run.SetBold === 'function') {
                             var boldResult = run.SetBold(bold);
-                            console.log('Set bold result:', boldResult, 'value:', bold);
+                            console.log('SetBold result:', boldResult);
                         }
-                        if (run.SetUnderline) {
+                        if (typeof run.SetUnderline === 'function') {
                             var underlineResult = run.SetUnderline(underline);
-                            console.log('Set underline result:', underlineResult, 'value:', underline);
+                            console.log('SetUnderline result:', underlineResult);
                         }
-                        if (run.SetColor) {
+                        if (typeof run.SetColor === 'function') {
                             var colorResult = run.SetColor(rgb[0], rgb[1], rgb[2]);
-                            console.log('Set color result:', colorResult, 'RGB:', rgb[0], rgb[1], rgb[2]);
+                            console.log('SetColor result:', colorResult, 'RGB:', rgb[0], rgb[1], rgb[2]);
                         }
 
-                        console.log('Text run created with text:', text);
+                        // 方法4: 使用TextPr对象设置样式
+                        if (typeof Api.CreateTextPr === 'function') {
+                            var textPr = Api.CreateTextPr();
+                            if (textPr) {
+                                console.log('Created TextPr object');
+                                console.log('TextPr methods:', Object.getOwnPropertyNames(textPr).filter(name => name.includes('Set')));
+
+                                if (typeof textPr.SetColor === 'function') {
+                                    textPr.SetColor(rgb[0], rgb[1], rgb[2]);
+                                    console.log('Set TextPr color');
+                                }
+                                if (typeof textPr.SetBold === 'function') textPr.SetBold(bold);
+                                if (typeof textPr.SetUnderline === 'function') textPr.SetUnderline(underline);
+
+                                if (typeof run.SetTextPr === 'function') {
+                                    var textPrResult = run.SetTextPr(textPr);
+                                    console.log('SetTextPr result:', textPrResult);
+                                }
+                            }
+                        }
+
+                        // 添加到段落
                         p.AddElement(run);
+                        console.log('Added run to paragraph');
+
+                        // 方法5: 在添加后尝试重新设置样式
+                        console.log('Re-applying styles after adding to paragraph...');
+                        if (typeof run.SetColor === 'function') {
+                            var reColorResult = run.SetColor(rgb[0], rgb[1], rgb[2]);
+                            console.log('Re-set color result:', reColorResult);
+                        }
+
+                        // 方法6: 尝试对段落设置默认样式
+                        if (typeof p.SetColor === 'function') {
+                            var pColorResult = p.SetColor(rgb[0], rgb[1], rgb[2]);
+                            console.log('Paragraph SetColor result:', pColorResult);
+                        }
+
+                        // 方法7: 尝试Content Control级别的样式设置
+                        console.log('Trying Content Control level styling...');
+                        if (typeof sdt.SetColor === 'function') {
+                            var sdtColorResult = sdt.SetColor(rgb[0], rgb[1], rgb[2]);
+                            console.log('Content Control SetColor result:', sdtColorResult);
+                        }
                     }
 
-                    console.log('Added content control with JSON data binding at cursor position');
+                    console.log('Content control created with click support');
                 } else {
-                    // 有URL - 使用真实超链接
-                    var sdt = doc.AddComboBoxContentControl();
-                    sdt.SetTag('link-data:' + jsonData);
-                    if (sdt.SetAlias) {
-                        sdt.SetAlias('超链接: ' + url);
-                    }
-
-                    var content = sdt.GetContent();
-                    content.RemoveAllElements();
-                    var p = content.GetElement(0);
-
-                    if (p) {
-                        // 创建超链接元素
-                        var hyperlink = Api.CreateHyperlink(url, text);
-                        if (hyperlink.SetBold) hyperlink.SetBold(bold);
-                        if (hyperlink.SetUnderline) hyperlink.SetUnderline(underline);
-                        if (hyperlink.SetColor) hyperlink.SetColor(rgb[0], rgb[1], rgb[2]);
-                        p.AddElement(hyperlink);
-                    }
-
-                    console.log('Added hyperlink content control at cursor position');
+                    // 有URL的情况保持不变
+                    this.insertWithContentControl(text, url, rgb, bold, underline, jsonData, doc);
                 }
 
                 console.log('Link insertion completed successfully');
@@ -182,5 +230,65 @@ export class LinkService {
                 console.log('Error stack:', e.stack);
             }
         });
+    }
+
+    // 辅助方法：使用Content Control插入
+    insertWithContentControl(text, url, rgb, bold, underline, jsonData, doc) {
+        if (!url || !String(url).trim()) {
+            // 空URL - 使用Content Control方式
+            var sdt = doc.AddComboBoxContentControl();
+            sdt.SetTag('link-data:' + jsonData);
+            if (sdt.SetAlias) {
+                sdt.SetAlias('可点击链接');
+            }
+
+            var content = sdt.GetContent();
+            content.RemoveAllElements();
+            var p = content.GetElement(0);
+
+            if (p) {
+                var run = Api.CreateRun();
+                run.AddText(text);
+
+                // 尝试各种样式设置方法
+                if (run.SetBold) run.SetBold(bold);
+                if (run.SetUnderline) run.SetUnderline(underline);
+                if (run.SetColor) run.SetColor(rgb[0], rgb[1], rgb[2]);
+
+                var textPr = Api.CreateTextPr();
+                if (textPr && run.SetTextPr) {
+                    if (textPr.SetColor) textPr.SetColor(rgb[0], rgb[1], rgb[2]);
+                    if (textPr.SetBold) textPr.SetBold(bold);
+                    if (textPr.SetUnderline) textPr.SetUnderline(underline);
+                    run.SetTextPr(textPr);
+                }
+
+                p.AddElement(run);
+            }
+            console.log('Added content control with JSON data');
+        } else {
+            // 有URL - 使用超链接
+            var sdt = doc.AddComboBoxContentControl();
+            sdt.SetTag('link-data:' + jsonData);
+            if (sdt.SetAlias) {
+                sdt.SetAlias('超链接: ' + url);
+            }
+
+            var content = sdt.GetContent();
+            content.RemoveAllElements();
+            var p = content.GetElement(0);
+
+            if (p) {
+                var run = Api.CreateRun();
+                if (run.SetBold) run.SetBold(bold);
+                if (run.SetUnderline) run.SetUnderline(underline);
+                if (run.SetColor) run.SetColor(rgb[0], rgb[1], rgb[2]);
+
+                var hyperlink = Api.CreateHyperlink(url, text);
+                run.AddElement(hyperlink);
+                p.AddElement(run);
+            }
+            console.log('Added hyperlink content control');
+        }
     }
 }
