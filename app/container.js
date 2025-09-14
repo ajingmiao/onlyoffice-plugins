@@ -7,6 +7,7 @@ import { LinkService } from '../services/link-service.js'
 import { WordArtService } from '../services/wordart-service.js'
 import { ShapeService } from '../services/shape-service.js'
 import { TableService } from '../services/table-service.js'
+import { SelectionBindingService } from '../services/selection-binding-service.js'
 import { CommandBus } from './command-bus.js';
 import { EventBus } from './event-bus.js';
 
@@ -20,10 +21,21 @@ export function createContainer() {
   const wordart = new WordArtService(editor)
   const shape = new ShapeService(editor)
   const table = new TableService(editor)
+  const selectionBinding = new SelectionBindingService(editor)
   const selection = new SelectionService(plugin, sdt);
 
   const events = new EventBus({ hostBridge: host });
-  const commands = new CommandBus({ sdtService: sdt, linkService: link, wordArtService: wordart, shapeService: shape, tableService: table });
+  const commands = new CommandBus({
+    sdtService: sdt,
+    linkService: link,
+    wordArtService: wordart,
+    shapeService: shape,
+    tableService: table,
+    selectionBindingService: selectionBinding
+  });
 
-  return { host, plugin, editor, sdt, link, wordart, shape, table, selection, events, commands };
+  return {
+    host, plugin, editor, sdt, link, wordart, shape, table, selectionBinding,
+    selection, events, commands
+  };
 }

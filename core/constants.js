@@ -10,7 +10,10 @@ export const COMMANDS = {
     INSERT_TABLE: 'insertTable',
     INSERT_PRESET_TABLE: 'insertPresetTable',
     INSERT_DYNAMIC_TABLE: 'insertDynamicTable',
-    TABLE_CLICKED: 'tableClicked'
+    TABLE_CLICKED: 'tableClicked',
+    BIND_SELECTION: 'bindSelection',
+    ANALYZE_SELECTION: 'analyzeSelection',
+    BINDING_CLICKED: 'bindingClicked'
   };
   
   export const EVENTS = {

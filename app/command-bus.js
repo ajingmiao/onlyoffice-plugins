@@ -1,12 +1,13 @@
 import { COMMANDS } from '../core/constants.js';
 
 export class CommandBus {
-  constructor({ sdtService, linkService, wordArtService, shapeService, tableService }) {
+  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService }) {
     this.sdt = sdtService;
     this.link = linkService;
     this.wordart = wordArtService;
     this.shape = shapeService;
     this.table = tableService;
+    this.selectionBinding = selectionBindingService;
   }
 
   async dispatch(cmd) {
@@ -151,6 +152,33 @@ export class CommandBus {
           return { ok: true, data: tableData };
         } else {
           return { ok: false, error: 'No table data found at current position' };
+        }
+      }
+
+      case COMMANDS.ANALYZE_SELECTION: {
+        const selectionData = await this.selectionBinding.analyzeSelection();
+        if (selectionData && selectionData.success) {
+          return { ok: true, data: selectionData };
+        } else {
+          return { ok: false, error: selectionData?.error || 'Selection analysis failed' };
+        }
+      }
+
+      case COMMANDS.BIND_SELECTION: {
+        const bindingResult = await this.selectionBinding.bindSelection(data);
+        if (bindingResult && bindingResult.success) {
+          return { ok: true, data: bindingResult };
+        } else {
+          return { ok: false, error: bindingResult?.error || 'Selection binding failed' };
+        }
+      }
+
+      case COMMANDS.BINDING_CLICKED: {
+        const bindingClickData = await this.selectionBinding.handleBindingClick();
+        if (bindingClickData && bindingClickData.success) {
+          return { ok: true, data: bindingClickData };
+        } else {
+          return { ok: false, error: bindingClickData?.error || 'No binding control clicked' };
         }
       }
 

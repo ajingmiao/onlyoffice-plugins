@@ -40,6 +40,18 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
         } else {
           logger.info('No table found at current selection');
         }
+
+        // 检查绑定控件点击
+        logger.info('Checking for binding control click after selection change...');
+        const bindingResult = await commands.dispatch({ command: COMMANDS.BINDING_CLICKED });
+        logger.info('Binding check result:', bindingResult);
+
+        if (bindingResult.ok && bindingResult.data) {
+          logger.info('Binding control click detected, sending to host:', bindingResult.data);
+          host.sendInfo('bindingClicked', bindingResult.data);
+        } else {
+          logger.info('No binding control found at current selection');
+        }
       } catch (e) {
         logger.info('Selection change processing error:', e.message);
       }

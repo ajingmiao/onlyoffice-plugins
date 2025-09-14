@@ -103,92 +103,39 @@ export class TableService {
                     }
                 }
 
-                // 尝试使用InsertContent插入表格
+                // === 插入真正的表格（无标记控件）===
+                console.log('插入真正的表格...');
+                var insertSuccess = false;
+
+                // 先尝试插入表格
                 if (typeof doc.InsertContent === 'function') {
                     console.log('尝试使用InsertContent插入表格...');
                     var insertResult = doc.InsertContent([table], false);
                     console.log('InsertContent结果:', insertResult);
 
                     if (insertResult) {
+                        insertSuccess = true;
                         console.log('✅ 表格通过InsertContent插入成功');
-                        return {
-                            success: true,
-                            message: 'Table inserted using InsertContent',
-                            method: 'InsertContent',
-                            parameters: { rows, columns, width: `${width}${widthType}` }
-                        };
                     }
                 }
 
-                // 方法2: 获取当前段落并插入表格
-                console.log('方法2: 尝试段落级别插入...');
-                var range = doc.GetRangeBySelect();
-                var targetParagraph = null;
-
-                if (range && typeof range.GetParagraph === 'function') {
-                    targetParagraph = range.GetParagraph();
-                }
-
-                if (!targetParagraph && typeof doc.GetElement === 'function') {
-                    targetParagraph = doc.GetElement(0);
-                    console.log('使用第一个段落作为插入点');
-                }
-
-                if (targetParagraph) {
-                    // 尝试在段落后添加表格
-                    console.log('尝试在段落后添加表格...');
-
-                    // 获取段落的父容器
-                    if (typeof targetParagraph.GetParent === 'function') {
-                        var parentContent = targetParagraph.GetParent();
-                        if (parentContent && typeof parentContent.AddElement === 'function') {
-                            // 找到当前段落的位置
-                            var elementCount = 0;
-                            var targetIndex = -1;
-                            for (var i = 0; i < 50; i++) {
-                                var element = doc.GetElement(i);
-                                if (element) {
-                                    if (element === targetParagraph) {
-                                        targetIndex = i + 1;
-                                        break;
-                                    }
-                                    elementCount++;
-                                } else {
-                                    break;
-                                }
-                            }
-
-                            if (targetIndex > 0) {
-                                console.log(`在位置 ${targetIndex} 插入表格`);
-                                // 使用Document的Push或类似方法
-                                if (typeof doc.Push === 'function') {
-                                    doc.Push(table);
-                                    console.log('✅ 表格通过Document.Push插入成功');
-                                    return {
-                                        success: true,
-                                        message: 'Table inserted using Document.Push',
-                                        method: 'Document-Push',
-                                        parameters: { rows, columns, width: `${width}${widthType}` }
-                                    };
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // 方法3: 作为文档元素直接添加
-                console.log('方法3: 尝试作为文档元素添加...');
-                if (typeof doc.Push === 'function') {
+                if (!insertSuccess && typeof doc.Push === 'function') {
+                    console.log('尝试使用Push插入表格...');
                     doc.Push(table);
-                    console.log('✅ 表格通过Document.Push添加成功');
+                    insertSuccess = true;
+                    console.log('✅ 表格通过Document.Push插入成功');
+                }
+
+                if (insertSuccess) {
                     return {
                         success: true,
-                        message: 'Table added to document end',
-                        method: 'Document-Push-End',
+                        message: 'Table inserted successfully',
+                        method: 'Clean-Table-Insert',
                         parameters: { rows, columns, width: `${width}${widthType}` }
                     };
                 }
 
+                // 如果上述方法都失败了
                 return { success: false, error: 'All table insertion methods failed' };
 
             } catch (e) {
@@ -383,6 +330,19 @@ export class TableService {
                     }
                 }
 
+                // === 插入真正的动态表格（无标记控件）===
+                console.log('插入真正的动态表格...');
+                var insertSuccess = false;
+
+                // 先插入标题（如果有）
+                if (titlePara) {
+                    if (typeof doc.Push === 'function') {
+                        doc.Push(titlePara);
+                        console.log('✅ 标题段落插入成功');
+                    }
+                }
+
+                // 插入表格
                 if (typeof doc.InsertContent === 'function') {
                     console.log('尝试使用InsertContent插入动态表格...');
                     var insertResult = doc.InsertContent([table], false);
@@ -464,185 +424,176 @@ export class TableService {
         return this.insertTable(options);
     }
 
-    // 处理表格点击事件
+    // 处理表格点击事件（直接检测表格，不依赖Content Control）
     async handleTableClick() {
-        return this.editor.runInDoc(function () {
-            var doc = Api.GetDocument();
-
-            console.log('=== 表格点击检测 ===');
-
-            try {
-                // 获取当前选区
+        return new Promise((resolve) => {
+            this.editor.runInDoc(function () {
+                var doc = Api.GetDocument();
                 var range = doc.GetRangeBySelect();
+
+                console.log('=== 表格点击检测（直接检测方式）===');
+                console.log('当前选区:', range);
+
                 if (!range) {
                     console.log('未检测到选区');
-                    return { success: false, error: 'No selection found' };
+                    resolve({ success: false, error: 'No selection found' });
+                    return;
                 }
 
-                console.log('选区信息:', range);
+                // 检测文档中的所有表格
+                console.log('扫描文档中的所有表格...');
+                var foundTables = [];
 
-                // 检测是否在表格中
-                var currentElement = null;
-                var tableInfo = {
-                    inTable: false,
-                    tableIndex: -1,
-                    rowIndex: -1,
-                    cellIndex: -1,
-                    cellText: '',
-                    tableData: null
-                };
-
-                // 尝试获取当前段落
-                if (typeof range.GetParagraph === 'function') {
-                    var para = range.GetParagraph();
-                    if (para) {
-                        console.log('找到段落:', para);
-
-                        // 检查段落是否在表格单元格中
-                        var parent = para;
-                        var cellFound = false;
-
-                        // 向上查找父元素直到找到表格单元格
-                        for (var level = 0; level < 10; level++) {
-                            if (parent && typeof parent.GetParent === 'function') {
-                                parent = parent.GetParent();
-                                console.log(`父级 ${level}:`, parent, typeof parent);
-
-                                // 检查是否是表格单元格
-                                if (parent && typeof parent.GetClassType === 'function') {
-                                    var classType = parent.GetClassType();
-                                    console.log(`ClassType ${level}:`, classType);
-
-                                    if (classType === 'CDocumentContent' || classType === 'CTableCell') {
-                                        cellFound = true;
-                                        console.log('发现表格单元格!');
-
-                                        // 获取单元格文本
-                                        if (typeof parent.GetElementsCount === 'function') {
-                                            var elementCount = parent.GetElementsCount();
-                                            console.log('单元格元素数量:', elementCount);
-
-                                            for (var i = 0; i < elementCount; i++) {
-                                                var element = parent.GetElement(i);
-                                                if (element && typeof element.GetText === 'function') {
-                                                    tableInfo.cellText += element.GetText();
-                                                }
-                                            }
-                                        }
-                                        break;
-                                    }
-                                }
-                            } else {
-                                break;
-                            }
-                        }
-
-                        if (cellFound) {
-                            tableInfo.inTable = true;
-                            console.log('✅ 检测到表格点击');
-                        }
-                    }
-                }
-
-                // 方法2：尝试通过文档元素查找表格
-                if (!tableInfo.inTable) {
-                    console.log('尝试方法2：遍历文档元素查找表格...');
-
-                    for (var i = 0; i < 20; i++) {
+                for (var i = 0; i < 50; i++) {
+                    try {
                         var element = doc.GetElement(i);
-                        if (!element) break;
+                        if (!element) {
+                            console.log(`文档元素 ${i}: null，结束遍历`);
+                            break;
+                        }
 
+                        var elementType = 'unknown';
                         if (typeof element.GetClassType === 'function') {
-                            var classType = element.GetClassType();
-                            console.log(`文档元素 ${i}:`, classType);
+                            elementType = element.GetClassType();
+                        }
 
-                            if (classType === 'CTable') {
-                                console.log(`发现表格 ${i}!`);
-                                tableInfo.tableIndex = i;
-                                tableInfo.inTable = true;
+                        console.log(`文档元素 ${i}: ${elementType}`);
 
-                                // 获取表格信息
-                                if (typeof element.GetRowsCount === 'function') {
-                                    var rowCount = element.GetRowsCount();
-                                    console.log('表格行数:', rowCount);
+                        if (elementType === 'CTable') {
+                            console.log(`✅ 发现表格在位置 ${i}!`);
 
-                                    tableInfo.tableData = {
-                                        rows: rowCount,
-                                        columns: 0,
-                                        content: []
-                                    };
+                            // 提取表格数据
+                            var tableData = {
+                                index: i,
+                                rows: 0,
+                                columns: 0,
+                                content: []
+                            };
 
-                                    // 获取表格内容
-                                    for (var r = 0; r < Math.min(rowCount, 5); r++) {
+                            if (typeof element.GetRowsCount === 'function') {
+                                tableData.rows = element.GetRowsCount();
+                                console.log(`表格 ${i} 行数:`, tableData.rows);
+
+                                // 提取表格内容（前5行）
+                                for (var r = 0; r < Math.min(tableData.rows, 5); r++) {
+                                    try {
                                         if (typeof element.GetRow === 'function') {
                                             var row = element.GetRow(r);
                                             if (row && typeof row.GetCellsCount === 'function') {
                                                 var cellCount = row.GetCellsCount();
-                                                tableInfo.tableData.columns = Math.max(tableInfo.tableData.columns, cellCount);
+                                                tableData.columns = Math.max(tableData.columns, cellCount);
 
                                                 var rowData = [];
-                                                for (var c = 0; c < cellCount; c++) {
-                                                    if (typeof row.GetCell === 'function') {
-                                                        var cell = row.GetCell(c);
-                                                        if (cell && typeof cell.GetContent === 'function') {
-                                                            var cellContent = cell.GetContent();
+                                                for (var c = 0; c < Math.min(cellCount, 10); c++) {
+                                                    try {
+                                                        if (typeof row.GetCell === 'function') {
+                                                            var cell = row.GetCell(c);
                                                             var cellText = '';
-                                                            if (cellContent && typeof cellContent.GetElementsCount === 'function') {
-                                                                var elemCount = cellContent.GetElementsCount();
-                                                                for (var e = 0; e < elemCount; e++) {
-                                                                    var cellElem = cellContent.GetElement(e);
-                                                                    if (cellElem && typeof cellElem.GetText === 'function') {
-                                                                        cellText += cellElem.GetText();
+
+                                                            if (cell && typeof cell.GetContent === 'function') {
+                                                                var cellContent = cell.GetContent();
+                                                                if (cellContent && typeof cellContent.GetElementsCount === 'function') {
+                                                                    var elemCount = cellContent.GetElementsCount();
+                                                                    for (var e = 0; e < elemCount; e++) {
+                                                                        var cellElem = cellContent.GetElement(e);
+                                                                        if (cellElem && typeof cellElem.GetText === 'function') {
+                                                                            cellText += cellElem.GetText();
+                                                                        }
                                                                     }
                                                                 }
                                                             }
                                                             rowData.push(cellText.trim());
                                                         }
+                                                    } catch (cellError) {
+                                                        console.log(`读取单元格 [${r}][${c}] 出错:`, cellError);
+                                                        rowData.push('ERROR');
                                                     }
                                                 }
-                                                tableInfo.tableData.content.push(rowData);
+                                                tableData.content.push(rowData);
+                                                console.log(`表格 ${i} 第 ${r} 行:`, rowData);
                                             }
                                         }
+                                    } catch (rowError) {
+                                        console.log(`读取表格第 ${r} 行出错:`, rowError);
                                     }
                                 }
-                                break;
                             }
+
+                            foundTables.push({ index: i, table: element, data: tableData });
                         }
+                    } catch (elementError) {
+                        console.log(`读取文档元素 ${i} 出错:`, elementError);
                     }
                 }
 
-                if (tableInfo.inTable) {
-                    console.log('表格点击信息:', tableInfo);
-                    return {
+                console.log(`总共发现 ${foundTables.length} 个表格`);
+
+                if (foundTables.length > 0) {
+                    // 简单策略：返回最后一个表格的信息（假设用户点击的是最近的表格）
+                    var lastTable = foundTables[foundTables.length - 1];
+
+                    // 尝试检测表格的类型（通过分析表格内容）
+                    var detectedType = 'unknown-table';
+                    var metadata = {
+                        detectedAt: new Date().toLocaleString('zh-CN'),
+                        method: 'content-analysis'
+                    };
+
+                    // 简单的表格类型识别
+                    if (lastTable.data.content && lastTable.data.content.length > 0) {
+                        var firstRow = lastTable.data.content[0];
+                        if (firstRow && firstRow.length > 0) {
+                            var headerText = firstRow.join('|').toLowerCase();
+
+                            if (headerText.includes('产品') && headerText.includes('月')) {
+                                detectedType = 'sales-report';
+                                metadata.title = '销售报表';
+                                metadata.category = '业务数据';
+                            } else if (headerText.includes('时间') && headerText.includes('周')) {
+                                detectedType = 'schedule';
+                                metadata.title = '时间表';
+                                metadata.category = '日程安排';
+                            } else if (firstRow.length >= 3) {
+                                detectedType = 'data-table';
+                                metadata.title = '数据表格';
+                                metadata.category = '通用表格';
+                            }
+                        }
+                    }
+
+                    var result = {
                         success: true,
-                        message: 'Table click detected',
+                        message: 'Table detected in document',
                         data: {
                             clickType: 'table',
-                            tableIndex: tableInfo.tableIndex,
-                            rowIndex: tableInfo.rowIndex,
-                            cellIndex: tableInfo.cellIndex,
-                            cellText: tableInfo.cellText,
-                            tableData: tableInfo.tableData,
+                            tableIndex: lastTable.index,
+                            tableData: lastTable.data,
+                            detectedType: detectedType,
+                            metadata: metadata,
+                            detectionMethod: 'direct-table-scan',
+                            tablesFound: foundTables.length,
                             timestamp: new Date().toLocaleString('zh-CN')
                         }
                     };
+
+                    console.log('✅ 表格检测成功:', result);
+                    resolve(result);
+                    return;
                 } else {
-                    console.log('未检测到表格点击');
-                    return {
+                    console.log('❌ 未发现任何表格');
+                    resolve({
                         success: false,
-                        error: 'Click not in table',
+                        error: 'No tables found in document',
                         data: {
                             clickType: 'document',
+                            elementsScanned: 50,
+                            hasRange: !!range,
                             timestamp: new Date().toLocaleString('zh-CN')
                         }
-                    };
+                    });
                 }
 
-            } catch (e) {
-                console.log('表格点击检测失败:', e);
-                console.log('Error stack:', e.stack);
-                return { success: false, error: e.message };
-            }
+            }, { async: false, cb: (res) => resolve(res) });
         });
     }
 }
