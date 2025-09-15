@@ -260,8 +260,8 @@ export class SelectionBindingService {
 
                         // 直接添加文本
                         if (typeof sdt.AddText === 'function') {
-                            sdt.AddText('{{' + scope.fieldName + '}}');
-                            console.log('已添加文本: {{' + scope.fieldName + '}}');
+                            sdt.AddText(scope.fieldName);
+                            console.log('已添加文本: ' + scope.fieldName);
                         }
 
                         // 创建文本属性并设置样式
