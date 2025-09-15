@@ -255,43 +255,40 @@ export class SelectionBindingService {
                             sdt.SetAlias('数据绑定: ' + scope.fieldName + ' (' + scope.dataType + ')');
                         }
 
-                        // 设置Control内容 - 检查GetContent方法是否存在
-                        if (typeof sdt.GetContent !== 'function') {
-                            console.log('sdt.GetContent不存在，尝试直接添加文本');
-                            // 如果GetContent不存在，尝试其他方法
-                            if (typeof sdt.SetPlaceholderText === 'function') {
-                                sdt.SetPlaceholderText('{{' + scope.fieldName + '}}');
-                            }
-                            return {
-                                success: true,
-                                message: 'Text field bound successfully (simplified)',
-                                method: 'text-field-binding-simple',
-                                binding: bindingMetadata
-                            };
+                        // 使用更简洁的方式设置内容和样式
+                        console.log('设置ContentControl文本和样式...');
+
+                        // 直接添加文本
+                        if (typeof sdt.AddText === 'function') {
+                            sdt.AddText('{{' + scope.fieldName + '}}');
+                            console.log('已添加文本: {{' + scope.fieldName + '}}');
                         }
 
-                        var content = sdt.GetContent();
-                        if (content) {
-                            console.log('获取内容成功，开始设置文本...');
-                            content.RemoveAllElements();
-                            var para = content.GetElement(0);
-                            if (para && typeof para.AddText === 'function') {
-                                para.AddText('{{' + scope.fieldName + '}}');
-                            } else if (para) {
-                                // 使用Run方式添加文本
-                                var run = Api.CreateRun();
-                                run.AddText('{{' + scope.fieldName + '}}');
-
-                                // 添加样式标识
-                                if (typeof run.SetColor === 'function') {
-                                    run.SetColor(0, 100, 200); // 蓝色
+                        // 创建文本属性并设置样式
+                        if (typeof Api.CreateTextPr === 'function') {
+                            var textProps = Api.CreateTextPr();
+                            if (textProps) {
+                                if (typeof textProps.SetColor === 'function') {
+                                    textProps.SetColor(0, 100, 200); // 蓝色 RGB
+                                    console.log('设置文本颜色为蓝色');
                                 }
-                                if (typeof run.SetBold === 'function') {
-                                    run.SetBold(true);
+                                if (typeof textProps.SetBold === 'function') {
+                                    textProps.SetBold(true);
+                                    console.log('设置文本为粗体');
                                 }
 
-                                para.AddElement(run);
+                                // 应用样式到整个ContentControl
+                                if (typeof sdt.SetTextPr === 'function') {
+                                    sdt.SetTextPr(textProps);
+                                    console.log('已应用样式到ContentControl');
+                                }
                             }
+                        }
+
+                        // 备选方案：如果上述方法不可用，尝试占位符
+                        if (typeof sdt.AddText !== 'function' && typeof sdt.SetPlaceholderText === 'function') {
+                            sdt.SetPlaceholderText('{{' + scope.fieldName + '}}');
+                            console.log('使用占位符方式设置文本');
                         }
 
                         console.log('✅ 文本字段绑定完成');
