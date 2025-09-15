@@ -333,8 +333,39 @@ export class SelectionBindingService {
                             sdt.SetAlias('模板变量: ' + variableName);
                         }
 
-                        // 检查GetContent方法是否存在
-                        if (typeof sdt.GetContent !== 'function') {
+                        // 直接添加文本
+                        if (typeof sdt.AddText === 'function') {
+                            sdt.AddText('{' + variableName + '}');
+                            console.log('已添加模板变量文本: {' + variableName + '}');
+                        }
+
+                        // 创建文本属性并设置样式 - 新增
+                        if (typeof Api.CreateTextPr === 'function') {
+                            var textProps = Api.CreateTextPr();
+                            if (textProps) {
+                                if (typeof textProps.SetColor === 'function') {
+                                    textProps.SetColor(150, 0, 150); // 紫色 RGB
+                                    console.log('设置模板变量文本颜色为紫色');
+                                }
+                                if (typeof textProps.SetItalic === 'function') {
+                                    textProps.SetItalic(true);
+                                    console.log('设置模板变量文本为斜体');
+                                }
+                                if (typeof textProps.SetBold === 'function') {
+                                    textProps.SetBold(true);
+                                    console.log('设置模板变量文本为粗体');
+                                }
+
+                                // 应用样式到整个ContentControl
+                                if (typeof sdt.SetTextPr === 'function') {
+                                    sdt.SetTextPr(textProps);
+                                    console.log('已应用紫色样式到模板变量ContentControl');
+                                }
+                            }
+                        }
+
+                        // 检查GetContent方法是否存在（备选方案）
+                        if (typeof sdt.GetContent !== 'function' && typeof sdt.AddText !== 'function') {
                             console.log('sdt.GetContent不存在，使用简化方法');
                             if (typeof sdt.SetPlaceholderText === 'function') {
                                 sdt.SetPlaceholderText('{' + variableName + '}');
@@ -347,27 +378,31 @@ export class SelectionBindingService {
                             };
                         }
 
-                        var content = sdt.GetContent();
-                        if (content) {
-                            content.RemoveAllElements();
-                            var para = content.GetElement(0);
-                            if (para && typeof para.AddText === 'function') {
-                                para.AddText('{' + variableName + '}');
-                            } else if (para) {
-                                var run = Api.CreateRun();
-                                run.AddText('{' + variableName + '}');
+                        // 如果需要，使用GetContent方法进行更细致的控制
+                        if (typeof sdt.GetContent === 'function' && typeof sdt.AddText !== 'function') {
+                            var content = sdt.GetContent();
+                            if (content) {
+                                content.RemoveAllElements();
+                                var para = content.GetElement(0);
+                                if (para && typeof para.AddText === 'function') {
+                                    para.AddText('{' + variableName + '}');
+                                } else if (para) {
+                                    var run = Api.CreateRun();
+                                    run.AddText('{' + variableName + '}');
 
-                                if (typeof run.SetColor === 'function') {
-                                    run.SetColor(150, 0, 150); // 紫色
-                                }
-                                if (typeof run.SetItalic === 'function') {
-                                    run.SetItalic(true);
-                                }
+                                    if (typeof run.SetColor === 'function') {
+                                        run.SetColor(150, 0, 150); // 紫色
+                                    }
+                                    if (typeof run.SetItalic === 'function') {
+                                        run.SetItalic(true);
+                                    }
 
-                                para.AddElement(run);
+                                    para.AddElement(run);
+                                }
                             }
                         }
 
+                        console.log('✅ 模板变量绑定完成');
                         return {
                             success: true,
                             message: 'Template variable bound successfully',
@@ -409,8 +444,39 @@ export class SelectionBindingService {
                             marker.SetAlias('表格数据绑定: ' + scope.fieldName);
                         }
 
-                        // 检查GetContent方法是否存在
-                        if (typeof marker.GetContent !== 'function') {
+                        // 直接添加文本
+                        if (typeof marker.AddText === 'function') {
+                            marker.AddText('📊 ' + scope.fieldName);
+                            console.log('已添加表格数据源文本: 📊 ' + scope.fieldName);
+                        }
+
+                        // 创建文本属性并设置样式 - 新增
+                        if (typeof Api.CreateTextPr === 'function') {
+                            var textProps = Api.CreateTextPr();
+                            if (textProps) {
+                                if (typeof textProps.SetColor === 'function') {
+                                    textProps.SetColor(0, 150, 0); // 绿色 RGB
+                                    console.log('设置表格数据源文本颜色为绿色');
+                                }
+                                if (typeof textProps.SetBold === 'function') {
+                                    textProps.SetBold(true);
+                                    console.log('设置表格数据源文本为粗体');
+                                }
+                                if (typeof textProps.SetUnderline === 'function') {
+                                    textProps.SetUnderline(true);
+                                    console.log('设置表格数据源文本为下划线');
+                                }
+
+                                // 应用样式到整个ContentControl
+                                if (typeof marker.SetTextPr === 'function') {
+                                    marker.SetTextPr(textProps);
+                                    console.log('已应用绿色样式到表格数据源ContentControl');
+                                }
+                            }
+                        }
+
+                        // 检查GetContent方法是否存在（备选方案）
+                        if (typeof marker.GetContent !== 'function' && typeof marker.AddText !== 'function') {
                             console.log('marker.GetContent不存在，使用简化方法');
                             if (typeof marker.SetPlaceholderText === 'function') {
                                 marker.SetPlaceholderText('📊 ' + scope.fieldName);
@@ -423,24 +489,31 @@ export class SelectionBindingService {
                             };
                         }
 
-                        var content = marker.GetContent();
-                        if (content) {
-                            content.RemoveAllElements();
-                            var para = content.GetElement(0);
-                            if (para && typeof para.AddText === 'function') {
-                                para.AddText('📊 ' + scope.fieldName);
-                            } else if (para) {
-                                var run = Api.CreateRun();
-                                run.AddText('📊 ' + scope.fieldName);
+                        // 如果需要，使用GetContent方法进行更细致的控制
+                        if (typeof marker.GetContent === 'function' && typeof marker.AddText !== 'function') {
+                            var content = marker.GetContent();
+                            if (content) {
+                                content.RemoveAllElements();
+                                var para = content.GetElement(0);
+                                if (para && typeof para.AddText === 'function') {
+                                    para.AddText('📊 ' + scope.fieldName);
+                                } else if (para) {
+                                    var run = Api.CreateRun();
+                                    run.AddText('📊 ' + scope.fieldName);
 
-                                if (typeof run.SetColor === 'function') {
-                                    run.SetColor(0, 150, 0); // 绿色
+                                    if (typeof run.SetColor === 'function') {
+                                        run.SetColor(0, 150, 0); // 绿色
+                                    }
+                                    if (typeof run.SetBold === 'function') {
+                                        run.SetBold(true);
+                                    }
+
+                                    para.AddElement(run);
                                 }
-
-                                para.AddElement(run);
                             }
                         }
 
+                        console.log('✅ 表格数据源绑定完成');
                         return {
                             success: true,
                             message: 'Table data source bound successfully',

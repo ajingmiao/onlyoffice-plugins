@@ -15,10 +15,10 @@ export class PluginBridge {
   }
 
   onSelectionChanged(cb) {
-    // 1. 首先尝试使用 onClick 事件（根据官方文档）
     window.Asc = window.Asc || {};
     window.Asc.plugin = window.Asc.plugin || {};
 
+    // 保留原有的 onClick 事件处理器
     window.Asc.plugin.event_onClick = function(isSelectionUse) {
       logger.info('🔥 onClick event triggered!', { isSelectionUse });
 
@@ -28,13 +28,20 @@ export class PluginBridge {
         if (obj && obj.Tag && obj.Tag.startsWith('link-data:')) {
           logger.info('Link content control clicked!');
         }
+        // 在 onClick 中也触发回调，确保元素检测运行
         cb?.();
       });
     };
 
-    // 2. 使用正确的OnlyOffice API - connector.attachEvent
+    // 使用 onSelectionChanged 事件（用于光标移动等）
+    window.Asc.plugin.event_onSelectionChanged = () => {
+      logger.info('🎯 Selection changed event triggered - running element detection');
+      cb?.();
+    };
+
+    // 如果有 connector API，也使用它
     if (window.connector && typeof window.connector.attachEvent === 'function') {
-      logger.info('Using connector.attachEvent for content control changes');
+      logger.info('Using connector.attachEvent for enhanced selection tracking');
 
       // 监听内容控件变化事件
       window.connector.attachEvent("onChangeContentControl", (obj) => {
@@ -42,31 +49,16 @@ export class PluginBridge {
         cb?.();
       });
 
-      // 也监听目标位置变化（光标移动）
+      // 监听目标位置变化（光标移动）
       window.connector.attachEvent("onTargetPositionChanged", (obj) => {
         logger.info('🔥 Target position changed via connector:', obj);
         cb?.();
       });
-
-    } else {
-      // 3. 降级到原有的事件机制
-      logger.info('Connector not available, using legacy event handlers');
-
-      window.Asc.plugin.event_onSelectionChanged = () => {
-        logger.info('🔥 Selection changed event triggered!');
-        cb?.();
-      };
-
-      window.Asc.plugin.event_onContentControlClick = (data) => {
-        logger.info('🔥 Content control clicked!', data);
-        cb?.();
-      };
-
-      // 确保事件处理器已正确设置
-      logger.info('onClick handler set:', typeof window.Asc.plugin.event_onClick);
-      logger.info('Selection change handler set:', typeof window.Asc.plugin.event_onSelectionChanged);
-      logger.info('Content control click handler set:', typeof window.Asc.plugin.event_onContentControlClick);
     }
+
+    logger.info('✅ Selection change handlers configured');
+    logger.info('onClick handler set:', typeof window.Asc.plugin.event_onClick);
+    logger.info('Selection change handler set:', typeof window.Asc.plugin.event_onSelectionChanged);
   }
 
   onHyperLinkClick(cb) {
