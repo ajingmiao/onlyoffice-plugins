@@ -1,13 +1,14 @@
 import { COMMANDS } from '../core/constants.js';
 
 export class CommandBus {
-  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService }) {
+  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService, elementDetectionService }) {
     this.sdt = sdtService;
     this.link = linkService;
     this.wordart = wordArtService;
     this.shape = shapeService;
     this.table = tableService;
     this.selectionBinding = selectionBindingService;
+    this.elementDetection = elementDetectionService;
   }
 
   async dispatch(cmd) {
@@ -179,6 +180,24 @@ export class CommandBus {
           return { ok: true, data: bindingClickData };
         } else {
           return { ok: false, error: bindingClickData?.error || 'No binding control clicked' };
+        }
+      }
+
+      case COMMANDS.ELEMENT_CLICKED: {
+        const elementData = await this.elementDetection.detectClickedElement();
+        if (elementData && elementData.success) {
+          return { ok: true, data: elementData };
+        } else {
+          return { ok: false, error: elementData?.error || 'Element detection failed' };
+        }
+      }
+
+      case COMMANDS.PRECISE_TABLE_CELL_CLICKED: {
+        const cellData = await this.elementDetection.detectTableCellClick();
+        if (cellData && cellData.success) {
+          return { ok: true, data: cellData };
+        } else {
+          return { ok: false, error: cellData?.error || 'Precise table cell detection failed' };
         }
       }
 

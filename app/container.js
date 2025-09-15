@@ -8,6 +8,7 @@ import { WordArtService } from '../services/wordart-service.js'
 import { ShapeService } from '../services/shape-service.js'
 import { TableService } from '../services/table-service.js'
 import { SelectionBindingService } from '../services/selection-binding-service.js'
+import { ElementDetectionService } from '../services/element-detection-service.js'
 import { CommandBus } from './command-bus.js';
 import { EventBus } from './event-bus.js';
 
@@ -22,6 +23,7 @@ export function createContainer() {
   const shape = new ShapeService(editor)
   const table = new TableService(editor)
   const selectionBinding = new SelectionBindingService(editor)
+  const elementDetection = new ElementDetectionService(editor)
   const selection = new SelectionService(plugin, sdt);
 
   const events = new EventBus({ hostBridge: host });
@@ -31,11 +33,12 @@ export function createContainer() {
     wordArtService: wordart,
     shapeService: shape,
     tableService: table,
-    selectionBindingService: selectionBinding
+    selectionBindingService: selectionBinding,
+    elementDetectionService: elementDetection
   });
 
   return {
-    host, plugin, editor, sdt, link, wordart, shape, table, selectionBinding,
+    host, plugin, editor, sdt, link, wordart, shape, table, selectionBinding, elementDetection,
     selection, events, commands
   };
 }

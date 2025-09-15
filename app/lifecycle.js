@@ -52,6 +52,30 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
         } else {
           logger.info('No binding control found at current selection');
         }
+
+        // 通用元素检测（新增）
+        logger.info('Running general element detection after selection change...');
+        const elementResult = await commands.dispatch({ command: COMMANDS.ELEMENT_CLICKED });
+        logger.info('Element detection result:', elementResult);
+
+        if (elementResult.ok && elementResult.data) {
+          logger.info('Element detected, sending to host:', elementResult.data);
+          host.sendInfo('elementClicked', elementResult.data);
+        } else {
+          logger.info('No specific element detected at current selection');
+        }
+
+        // 精确表格单元格检测（仅在通用检测到表格时执行）
+        if (elementResult.ok && elementResult.data?.data?.clickType === 'table') {
+          logger.info('Table detected, running precise cell detection...');
+          const preciseTableResult = await commands.dispatch({ command: COMMANDS.PRECISE_TABLE_CELL_CLICKED });
+          logger.info('Precise table cell result:', preciseTableResult);
+
+          if (preciseTableResult.ok && preciseTableResult.data) {
+            logger.info('Precise table cell detected, sending to host:', preciseTableResult.data);
+            host.sendInfo('preciseTableCellClicked', preciseTableResult.data);
+          }
+        }
       } catch (e) {
         logger.info('Selection change processing error:', e.message);
       }

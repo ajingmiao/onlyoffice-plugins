@@ -13,7 +13,9 @@ export const COMMANDS = {
     TABLE_CLICKED: 'tableClicked',
     BIND_SELECTION: 'bindSelection',
     ANALYZE_SELECTION: 'analyzeSelection',
-    BINDING_CLICKED: 'bindingClicked'
+    BINDING_CLICKED: 'bindingClicked',
+    ELEMENT_CLICKED: 'elementClicked',
+    PRECISE_TABLE_CELL_CLICKED: 'preciseTableCellClicked'
   };
   
   export const EVENTS = {
