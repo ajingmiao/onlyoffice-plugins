@@ -13,6 +13,12 @@ export class ChartBindingService {
                 console.log('=== 图表数据绑定开始 ===');
                 console.log('绑定数据:', chartData);
 
+                // 将chartData复制到Asc.scope中，避免作用域问题
+                window.Asc = window.Asc || {};
+                window.Asc.scope = {
+                    chartData: chartData
+                };
+
                 try {
                     var boundCharts = [];
                     var bindingResults = [];
@@ -41,14 +47,17 @@ export class ChartBindingService {
 
                                 console.log(`✅ 发现图表/图形在位置 ${i}: ${elementType}`);
 
+                                // 使用Asc.scope中的数据
+                                var chartDataToUse = window.Asc.scope.chartData;
+
                                 // 创建绑定信息
                                 var bindingInfo = {
                                     chartIndex: i,
                                     chartType: elementType,
-                                    boundData: chartData.data || {},
+                                    boundData: chartDataToUse.data || {},
                                     bindingId: 'chart_' + i + '_' + Date.now(),
                                     boundAt: new Date().toISOString(),
-                                    metadata: chartData.metadata || {}
+                                    metadata: chartDataToUse.metadata || {}
                                 };
 
                                 // 方法1: 尝试在图表周围创建隐藏的内容控件来存储数据
@@ -121,7 +130,7 @@ export class ChartBindingService {
                         data: {
                             chartsFound: boundCharts.length,
                             bindingResults: bindingResults,
-                            boundData: chartData,
+                            boundData: window.Asc.scope.chartData,
                             bindingMethod: 'content-control-marker',
                             timestamp: new Date().toLocaleString('zh-CN')
                         }
