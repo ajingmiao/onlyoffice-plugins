@@ -424,10 +424,12 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'table-binding:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'table-binding:' + JSON.stringify(bindingMetadata);
 
                         if (typeof marker.SetTag === 'function') {
                             marker.SetTag(tagData);
+                            console.log('设置表格绑定 Tag:', tagData);
                         }
 
                         if (typeof marker.SetAlias === 'function') {
@@ -534,10 +536,12 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'paragraph-template:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'paragraph-template:' + JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置段落模板 SDT Tag:', tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
@@ -610,10 +614,13 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'custom-binding:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'custom-binding:' + JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置自定义绑定 SDT Tag:', tagData);
+                        }
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
