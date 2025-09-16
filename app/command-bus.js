@@ -1,7 +1,7 @@
 import { COMMANDS } from '../core/constants.js';
 
 export class CommandBus {
-  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService, elementDetectionService }) {
+  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService, elementDetectionService, chartBindingService }) {
     this.sdt = sdtService;
     this.link = linkService;
     this.wordart = wordArtService;
@@ -9,6 +9,7 @@ export class CommandBus {
     this.table = tableService;
     this.selectionBinding = selectionBindingService;
     this.elementDetection = elementDetectionService;
+    this.chartBinding = chartBindingService;
   }
 
   async dispatch(cmd) {
@@ -198,6 +199,33 @@ export class CommandBus {
           return { ok: true, data: cellData };
         } else {
           return { ok: false, error: cellData?.error || 'Precise table cell detection failed' };
+        }
+      }
+
+      case COMMANDS.BIND_CHART_DATA: {
+        const chartResult = await this.chartBinding.bindDataToChart(data);
+        if (chartResult && chartResult.success) {
+          return { ok: true, data: chartResult };
+        } else {
+          return { ok: false, error: chartResult?.error || 'Chart data binding failed' };
+        }
+      }
+
+      case COMMANDS.CHART_CLICKED: {
+        const chartData = await this.chartBinding.detectChartClick();
+        if (chartData && chartData.success) {
+          return { ok: true, data: chartData };
+        } else {
+          return { ok: false, error: chartData?.error || 'Chart click detection failed' };
+        }
+      }
+
+      case COMMANDS.GET_CHART_SUMMARY: {
+        const summaryData = await this.chartBinding.getChartBindingSummary();
+        if (summaryData && summaryData.success) {
+          return { ok: true, data: summaryData };
+        } else {
+          return { ok: false, error: summaryData?.error || 'Chart summary retrieval failed' };
         }
       }
 

@@ -10,7 +10,8 @@
       "Bash(node --check app/command-bus.js)",
       "Bash(node --check app/lifecycle.js)",
       "Bash(curl -I http://222.187.11.98:8918/web-apps/apps/api/documents/api.js)",
-      "Bash(node --check bridge/plugin-bridge.js)"
+      "Bash(node --check bridge/plugin-bridge.js)",
+      "Bash(node --check services/chart-binding-service.js)"
     ],
     "deny": [],
     "ask": []

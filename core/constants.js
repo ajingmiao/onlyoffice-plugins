@@ -15,7 +15,10 @@ export const COMMANDS = {
     ANALYZE_SELECTION: 'analyzeSelection',
     BINDING_CLICKED: 'bindingClicked',
     ELEMENT_CLICKED: 'elementClicked',
-    PRECISE_TABLE_CELL_CLICKED: 'preciseTableCellClicked'
+    PRECISE_TABLE_CELL_CLICKED: 'preciseTableCellClicked',
+    BIND_CHART_DATA: 'bindChartData',
+    CHART_CLICKED: 'chartClicked',
+    GET_CHART_SUMMARY: 'getChartSummary'
   };
   
   export const EVENTS = {

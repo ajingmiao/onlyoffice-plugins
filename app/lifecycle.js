@@ -76,6 +76,18 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
             host.sendInfo('preciseTableCellClicked', preciseTableResult.data);
           }
         }
+
+        // 图表点击检测（新增）
+        logger.info('Running chart click detection...');
+        const chartResult = await commands.dispatch({ command: COMMANDS.CHART_CLICKED });
+        logger.info('Chart detection result:', chartResult);
+
+        if (chartResult.ok && chartResult.data) {
+          logger.info('Chart detected, sending to host:', chartResult.data);
+          host.sendInfo('chartClicked', chartResult.data);
+        } else {
+          logger.info('No chart or chart data detected');
+        }
       } catch (e) {
         logger.info('Selection change processing error:', e.message);
       }
