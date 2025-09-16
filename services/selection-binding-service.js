@@ -621,7 +621,6 @@ export class SelectionBindingService {
                             sdt.SetTag(tagData);
                             console.log('设置自定义绑定 SDT Tag:', tagData);
                         }
-                        }
 
                         if (typeof sdt.SetAlias === 'function') {
                             sdt.SetAlias('自定义绑定: ' + scope.fieldName);
