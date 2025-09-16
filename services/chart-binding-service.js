@@ -134,6 +134,7 @@ export class ChartBindingService {
 
                     // 尝试获取准确的图表类型
                     try {
+                        // 方法1: 尝试GetPrevChart
                         if (typeof chartInfo.element.GetPrevChart === 'function') {
                             console.log('🔍 优先尝试GetPrevChart方法');
 
@@ -162,15 +163,132 @@ export class ChartBindingService {
                                     console.log('🚨 GetChartType调用失败:', chartTypeError.message);
                                 }
                             } else {
-                                console.log('⚠️ prevChart为空或不支持GetChartType方法');
-                                console.log('prevChart值:', prevChart);
-                                if (prevChart) {
-                                    console.log('prevChart可用方法:', Object.getOwnPropertyNames(prevChart));
+                                console.log('⚠️ prevChart为空，尝试其他方法');
+                            }
+                        }
+
+                        // 方法2: 如果GetPrevChart失败，尝试直接调用GetChart
+                        if (detailedChartType.specificType === 'unknown' && typeof chartInfo.element.GetChart === 'function') {
+                            console.log('🔍 尝试GetChart方法');
+                            try {
+                                const chart = chartInfo.element.GetChart();
+                                console.log('📊 GetChart返回:', chart);
+                                if (chart && typeof chart.GetChartType === 'function') {
+                                    const chartType = chart.GetChartType();
+                                    console.log('📊 Chart.GetChartType返回:', chartType);
+                                    if (chartType) {
+                                        console.log('✅ 通过GetChart获得准确图表类型:', chartType);
+                                        detailedChartType.specificType = chartType;
+                                        detailedChartType.description = '图表 (' + chartType + ')';
+                                        detailedChartType.confidence = 1.0;
+                                    }
+                                }
+                            } catch (chartError) {
+                                console.log('🚨 GetChart调用失败:', chartError.message);
+                            }
+                        }
+
+                        // 方法2.5: 尝试直接调用图表元素的GetChartType方法
+                        if (detailedChartType.specificType === 'unknown' && typeof chartInfo.element.GetChartType === 'function') {
+                            console.log('🔍 尝试直接调用图表元素的GetChartType方法');
+                            try {
+                                const chartType = chartInfo.element.GetChartType();
+                                console.log('📊 直接GetChartType返回:', chartType);
+                                if (chartType && chartType !== 'chart') {
+                                    console.log('✅ 通过直接GetChartType获得准确图表类型:', chartType);
+                                    detailedChartType.specificType = chartType;
+                                    detailedChartType.description = '图表 (' + chartType + ')';
+                                    detailedChartType.confidence = 1.0;
+                                }
+                            } catch (chartTypeError) {
+                                console.log('🚨 直接GetChartType调用失败:', chartTypeError.message);
+                            }
+                        }
+
+                        // 方法3: 尝试OOXML分析来获取图表类型
+                        if (detailedChartType.specificType === 'unknown') {
+                            console.log('🔍 尝试OOXML分析...');
+                            const xmlMethods = ['GetOOXML', 'GetXML', 'ToXML', 'GetDocumentXML'];
+
+                            for (const xmlMethod of xmlMethods) {
+                                if (typeof chartInfo.element[xmlMethod] === 'function') {
+                                    try {
+                                        console.log(`🔍 尝试调用方法: ${xmlMethod}`);
+                                        const xmlResult = chartInfo.element[xmlMethod]();
+                                        if (xmlResult && typeof xmlResult === 'string' && xmlResult.length > 0) {
+                                            console.log(`✅ 成功获取XML内容，方法: ${xmlMethod}`);
+                                            console.log('📄 XML内容长度:', xmlResult.length);
+                                            console.log('📄 XML内容片段:', xmlResult.substring(0, 300) + '...');
+
+                                            // 分析XML内容中的图表类型模式
+                                            const chartTypePatterns = {
+                                                pie: /pieChart|pie|doughnut/i,
+                                                bar: /barChart|bar|column/i,
+                                                line: /lineChart|line/i,
+                                                area: /areaChart|area/i,
+                                                scatter: /scatterChart|scatter|xy/i,
+                                                bubble: /bubbleChart|bubble/i
+                                            };
+
+                                            for (const [chartType, pattern] of Object.entries(chartTypePatterns)) {
+                                                if (pattern.test(xmlResult)) {
+                                                    console.log('✅ 通过XML分析识别图表类型:', chartType);
+                                                    detailedChartType.specificType = chartType;
+                                                    detailedChartType.description = '图表 (' + chartType + ')';
+                                                    detailedChartType.confidence = 0.95;
+                                                    detailedChartType.detectionMethod = 'xml-pattern-analysis';
+                                                    break;
+                                                }
+                                            }
+
+                                            if (detailedChartType.specificType !== 'unknown') {
+                                                break; // 找到了图表类型，退出循环
+                                            }
+                                        }
+                                    } catch (xmlError) {
+                                        console.log(`🚨 ${xmlMethod} 调用失败:`, xmlError.message);
+                                    }
                                 }
                             }
-                        } else {
-                            console.log('⚠️ 图表元素不支持GetPrevChart方法');
                         }
+
+                        // 方法4: 尝试查看图表元素的所有可用方法
+                        if (detailedChartType.specificType === 'unknown') {
+                            console.log('🔍 分析图表元素的可用方法...');
+                            const allMethods = [];
+                            for (const prop in chartInfo.element) {
+                                if (typeof chartInfo.element[prop] === 'function') {
+                                    allMethods.push(prop);
+                                }
+                            }
+                            console.log('📊 图表元素可用方法 (前20个):', allMethods.slice(0, 20));
+
+                            // 尝试一些可能的图表类型相关方法
+                            const typeMethods = allMethods.filter(method =>
+                                method.toLowerCase().includes('type') ||
+                                method.toLowerCase().includes('chart')
+                            );
+                            console.log('📊 类型相关方法:', typeMethods);
+
+                            // 尝试调用这些方法
+                            for (const typeMethod of typeMethods.slice(0, 3)) {
+                                try {
+                                    console.log(`🔍 尝试调用方法: ${typeMethod}`);
+                                    const result = chartInfo.element[typeMethod]();
+                                    console.log(`📊 ${typeMethod} 返回:`, result);
+                                    if (result && typeof result === 'string') {
+                                        detailedChartType.specificType = result;
+                                        detailedChartType.description = '图表 (' + result + ')';
+                                        detailedChartType.confidence = 0.9;
+                                        console.log('✅ 通过方法' + typeMethod + '获得图表类型:', result);
+                                        break;
+                                    }
+                                } catch (methodError) {
+                                    console.log(`🚨 ${typeMethod} 调用失败:`, methodError.message);
+                                }
+                            }
+                        }
+
                     } catch (chartTypeError) {
                         console.log('🚨 图表类型识别失败:', chartTypeError.message);
                     }
