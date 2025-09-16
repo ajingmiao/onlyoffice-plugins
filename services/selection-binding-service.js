@@ -236,7 +236,10 @@ export class SelectionBindingService {
 
                         // 先设置Tag和Alias
                         if (typeof sdt.SetTag === 'function') {
-                            sdt.SetTag(scope.fieldName);
+                            // 优先使用 metadata.tag，如果没有则使用 fieldName
+                            var tagValue = scope.metadata && scope.metadata.tag ? scope.metadata.tag : scope.fieldName;
+                            sdt.SetTag(tagValue);
+                            console.log('设置SDT Tag:', tagValue);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
@@ -308,10 +311,12 @@ export class SelectionBindingService {
                             variableName: variableName
                         };
 
-                        var tagData = JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用 JSON 格式的绑定数据
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置模板变量 SDT Tag:', tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
