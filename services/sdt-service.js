@@ -32,28 +32,86 @@ export class SdtService {
 
   /** 在当前 Range/选择内探测是否命中某个 SDT，并返回其 tag/alias */
   detectActiveSdt() {
+    console.log('🔍 detectActiveSdt 开始执行...');
     return new Promise((resolve) => {
       this.editor.runInDoc(function () {
+        console.log('📄 进入 runInDoc 上下文...');
         var doc = Api.GetDocument();
         var range = doc.GetRangeBySelect();
-        if (!range) return null;
+        console.log('📋 获取选区:', range);
 
+        if (!range) {
+          console.log('❌ 没有选区，返回 null');
+          return null;
+        }
+
+        console.log('🔍 开始扫描内容控件...');
         var ctrls = doc.GetAllContentControls();
+        console.log('📊 找到', ctrls.length, '个内容控件');
+
         for (var i = 0; i < ctrls.length; i++) {
           var c = ctrls[i];
-          var hit =
-            (typeof range.IsInContentControl === 'function' && range.IsInContentControl(c)) ||
-            (typeof c.IsRangeIn === 'function' && c.IsRangeIn(range)) ||
-            (typeof c.IsSelected === 'function' && c.IsSelected());
+          console.log('🔍 检查内容控件', i);
+
+          var hit = false;
+
+          // 方法1: range.IsInContentControl
+          try {
+            if (typeof range.IsInContentControl === 'function') {
+              hit = range.IsInContentControl(c);
+              console.log('方法1结果:', hit);
+            } else {
+              console.log('方法1不存在');
+            }
+          } catch (e) {
+            console.log('方法1异常:', e.message);
+          }
+
+          // 方法2: c.IsRangeIn
+          if (!hit) {
+            try {
+              if (typeof c.IsRangeIn === 'function') {
+                hit = c.IsRangeIn(range);
+                console.log('方法2结果:', hit);
+              } else {
+                console.log('方法2不存在');
+              }
+            } catch (e) {
+              console.log('方法2异常:', e.message);
+            }
+          }
+
+          // 方法3: c.IsSelected
+          if (!hit) {
+            try {
+              if (typeof c.IsSelected === 'function') {
+                hit = c.IsSelected();
+                console.log('方法3结果:', hit);
+              } else {
+                console.log('方法3不存在');
+              }
+            } catch (e) {
+              console.log('方法3异常:', e.message);
+            }
+          }
+
+          console.log('内容控件', i, '最终结果:', hit);
+
           if (hit) {
-            return {
+            var result = {
               tag: c.GetTag ? c.GetTag() : "",
               alias: c.GetAlias ? c.GetAlias() : ""
             };
+            console.log('✅ 匹配成功:', result);
+            return result;
           }
         }
+        console.log('❌ 没有找到匹配的内容控件');
         return null;
-      }, { async: false, cb: (res) => resolve(res) });
+      }, { async: false, cb: (res) => {
+        console.log('🔄 runInDoc 回调被调用，结果:', res);
+        resolve(res);
+      } });
     });
   }
 }
