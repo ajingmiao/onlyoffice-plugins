@@ -19,50 +19,29 @@ export class ChartBindingService {
      */
     async bindDataToChart(chartData) {
         console.log('开始图表数据绑定流程');
+        console.log('从宿主页面接收到的图表数据:', chartData);
 
         return this.editor.runInDoc(() => {
             const doc = Api.GetDocument();
             console.log('=== 图表数据绑定开始 ===');
 
             try {
-                // 直接在runInDoc内部创建所有需要的实例和数据
-                console.log('在文档环境中创建服务实例...');
-
-                // 创建测试绑定数据
-                const bindingData = {
-                    data: {
-                        title: '测试图表数据',
-                        type: 'line-chart',
-                        dataSource: '测试系统',
-                        category: '测试分析',
-                        period: '2024年测试期间',
-                        metrics: {
-                            totalSales: 1000000,
-                            growthRate: 12.5,
-                            topProduct: '测试产品A',
-                            targetAchievement: 110
-                        },
-                        series: [
-                            { name: '实际销售', data: [100, 120, 110, 140] },
-                            { name: '目标销售', data: [110, 115, 120, 130] }
-                        ],
-                        categories: ['Q1', 'Q2', 'Q3', 'Q4']
-                    },
-                    metadata: {
-                        bindingId: 'test_chart_' + Date.now(),
-                        boundAt: new Date().toISOString(),
-                        dataVersion: '1.0',
-                        refreshInterval: 3600,
-                        lastUpdated: new Date().toLocaleString(),
-                        permissions: {
-                            canEdit: true,
-                            canRefresh: true,
-                            canExport: true
+                // 检查是否从宿主页面传递了有效数据
+                if (!chartData || !chartData.data || !chartData.metadata) {
+                    console.log('❌ 未收到有效的图表数据，无法进行绑定');
+                    return {
+                        success: false,
+                        error: '未从宿主页面接收到有效的图表数据，请确保调用时传递了完整的图表数据结构',
+                        data: {
+                            timestamp: new Date().toLocaleString()
                         }
-                    }
-                };
+                    };
+                }
 
-                console.log('使用测试绑定数据:', bindingData);
+                console.log('✅ 使用宿主页面传递的图表数据');
+                const bindingData = chartData;
+
+                console.log('📊 最终使用的绑定数据:', bindingData);
 
                 // 直接在内部实现图表扫描逻辑
                 console.log('开始扫描文档中的图表...');
