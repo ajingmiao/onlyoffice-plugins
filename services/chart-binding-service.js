@@ -373,196 +373,272 @@ export class ChartBindingService {
      * 检测图表点击并获取绑定的数据
      */
     async detectChartClick() {
-        // 在runInDoc外部获取服务引用，避免作用域问题
-        const chartDetector = this.chartDetector;
-        const dataBinder = this.dataBinder;
-        const typeDetector = this.typeDetector;
+        console.log('开始图表点击检测流程');
 
-        return new Promise((resolve) => {
-            this.editor.runInDoc(() => {
-                const doc = Api.GetDocument();
-                console.log('=== 图表点击检测 ===');
+        // 使用动态函数生成，完全避免作用域问题和SDK错误
+        const funcStr = `
+            const doc = Api.GetDocument();
+            console.log('=== 图表点击检测（超级安全模式）===');
 
+            try {
+                // 🔒 完全内联的安全图表扫描，避免调用外部服务
+                console.log('🔒 开始超级安全模式图表扫描...');
+
+                const documentLevelCharts = [];
+
+                // 直接内联图表扫描逻辑
                 try {
-                    // 获取当前选区信息
-                    const selectionInfo = chartDetector.getCurrentSelection(doc);
+                    if (typeof doc.GetAllDrawingObjects === 'function') {
+                        const docDrawingObjects = doc.GetAllDrawingObjects();
+                        console.log('📄 文档级绘图对象数量:', docDrawingObjects ? docDrawingObjects.length : 0);
 
-                    // 扫描所有图表，但使用安全模式
-                    console.log('🔒 使用安全模式扫描图表...');
-                    const scanResults = chartDetector.scanDocument(doc);
-                    const chartDetectionResults = [];
+                        if (docDrawingObjects && docDrawingObjects.length > 0) {
+                            for (let j = 0; j < docDrawingObjects.length; j++) {
+                                const drawingObj = docDrawingObjects[j];
+                                console.log('📊 检查绘图对象 ' + j);
 
-                    // 检查文档级图表的绑定数据 - 使用安全模式
-                    scanResults.documentLevelCharts.forEach((chartInfo) => {
-                        console.log('🔒 安全模式检查图表:', chartInfo.index);
+                                let drawingType = 'unknown';
+                                try {
+                                    if (typeof drawingObj.GetClassType === 'function') {
+                                        drawingType = drawingObj.GetClassType();
+                                    }
+                                } catch (typeError) {
+                                    console.log('🚨 获取类型失败，使用默认类型');
+                                    drawingType = 'unknown';
+                                }
 
-                        try {
-                            // 使用安全模式识别图表类型，避免触发SDK错误
-                            let detailedChartType;
-                            try {
-                                detailedChartType = typeDetector.identifyChartType(chartInfo.element, chartInfo.elementType);
-                            } catch (identifyError) {
-                                console.log('🚨 标准识别失败，使用安全模式:', identifyError.message);
-                                detailedChartType = {
-                                    category: 'chart',
-                                    specificType: 'unknown',
-                                    description: '图表（安全模式）',
-                                    properties: {
-                                        safeMode: true,
-                                        error: identifyError.message
-                                    },
-                                    confidence: 0.5
-                                };
-                            }
-                            console.log('📊 安全模式图表类型识别:', detailedChartType);
+                                console.log('📊 绘图对象类型:', drawingType);
 
-                            // 生成图表唯一标识符时也要小心
-                            let uniqueId;
-                            try {
-                                uniqueId = typeDetector.generateChartUniqueId(
-                                    chartInfo.element,
-                                    chartInfo.elementType,
-                                    chartInfo.drawingIndex
-                                );
-                            } catch (idError) {
-                                console.log('🚨 生成唯一ID失败，使用基础ID:', idError.message);
-                                uniqueId = `chart_safe_${chartInfo.drawingIndex}_${Date.now()}`;
-                            }
+                                // 检查是否是图表类型
+                                if (drawingType === 'chart' ||
+                                    drawingType.includes('Chart') ||
+                                    drawingType.includes('Drawing') ||
+                                    drawingType.includes('Shape') ||
+                                    drawingType.includes('Image')) {
 
-                            const chartResult = {
-                                chartIndex: chartInfo.index,
-                                chartType: chartInfo.elementType,
-                                detailedChartType: detailedChartType,
-                                uniqueId: uniqueId,
-                                boundData: null,
-                                hasBindingData: false,
-                                isDocumentLevel: true,
-                                drawingIndex: chartInfo.drawingIndex
-                            };
+                                    console.log('✅ 发现图表/图形:', drawingType);
 
-                            // 检查绑定数据
-                            const dataResult = dataBinder.getBoundData(chartInfo.element, chartInfo.drawingIndex);
-                            Object.assign(chartResult, dataResult);
+                                    const chartInfo = {
+                                        element: drawingObj,
+                                        elementType: drawingType,
+                                        index: 'doc_drawing_' + j,
+                                        drawingIndex: j,
+                                        isDocumentLevel: true,
+                                        source: 'document-level'
+                                    };
 
-                            // 如果找到绑定数据，记录匹配信息
-                            if (chartResult.hasBindingData && chartResult.boundData) {
-                                console.log('🔍 安全模式检查图表数据匹配:', {
-                                    currentId: uniqueId,
-                                    boundId: chartResult.boundData.uniqueId,
-                                    chartType: detailedChartType.description
-                                });
-                            }
-
-                            chartDetectionResults.push(chartResult);
-
-                        } catch (chartError) {
-                            console.log('🚨 安全检查图表失败，跳过:', chartError.message);
-
-                            // 即使失败也添加一个基础记录
-                            chartDetectionResults.push({
-                                chartIndex: chartInfo.index,
-                                chartType: chartInfo.elementType,
-                                detailedChartType: {
-                                    category: 'chart',
-                                    specificType: 'unknown',
-                                    description: '图表（安全模式）',
-                                    confidence: 0.5
-                                },
-                                uniqueId: `chart_safe_${chartInfo.drawingIndex}_${Date.now()}`,
-                                boundData: null,
-                                hasBindingData: false,
-                                isDocumentLevel: true,
-                                drawingIndex: chartInfo.drawingIndex,
-                                safeMode: true
-                            });
-                        }
-                    });
-
-                    // 查找被点击的图表 - 内联处理避免this作用域问题
-                    let clickedChart = null;
-                    if (chartDetectionResults.length > 0) {
-                        // 简单策略：如果有选区，取最后一个有数据的图表
-                        for (let i = chartDetectionResults.length - 1; i >= 0; i--) {
-                            if (chartDetectionResults[i].hasBindingData) {
-                                clickedChart = chartDetectionResults[i];
-                                break;
+                                    documentLevelCharts.push(chartInfo);
+                                }
                             }
                         }
-                        // 如果没有找到有数据的图表，取最后一个
-                        if (!clickedChart) {
-                            clickedChart = chartDetectionResults[chartDetectionResults.length - 1];
-                        }
-                    }
-
-                    if (clickedChart && clickedChart.hasBindingData) {
-                        const result = {
-                            success: true,
-                            message: 'Chart with bound data detected',
-                            data: {
-                                clickType: 'chart',
-                                chartInfo: clickedChart,
-                                boundData: clickedChart.boundData.boundData || clickedChart.boundData,
-                                bindingMetadata: {
-                                    bindingId: clickedChart.boundData.bindingId,
-                                    boundAt: clickedChart.boundData.boundAt,
-                                    bindingMethod: clickedChart.bindingMethod
-                                },
-                                detectionSummary: {
-                                    totalChartsFound: chartDetectionResults.length,
-                                    chartsWithData: chartDetectionResults.filter(c => c.hasBindingData).length,
-                                    hasSelection: selectionInfo.hasSelection
-                                },
-                                timestamp: new Date().toLocaleString('zh-CN')
-                            }
-                        };
-
-                        console.log('✅ 检测到图表点击，包含绑定数据:', result);
-                        resolve(result);
-
-                    } else if (chartDetectionResults.length > 0) {
-                        // 有图表但没有绑定数据
-                        resolve({
-                            success: true,
-                            message: 'Chart detected but no bound data',
-                            data: {
-                                clickType: 'chart',
-                                chartInfo: clickedChart || chartDetectionResults[0],
-                                boundData: null,
-                                detectionSummary: {
-                                    totalChartsFound: chartDetectionResults.length,
-                                    chartsWithData: 0,
-                                    hasSelection: selectionInfo.hasSelection
-                                },
-                                timestamp: new Date().toLocaleString('zh-CN')
-                            }
-                        });
-
                     } else {
-                        // 没有检测到图表
-                        resolve({
-                            success: false,
-                            error: 'No charts found in document',
-                            data: {
-                                clickType: 'other',
-                                hasSelection: selectionInfo.hasSelection,
-                                timestamp: new Date().toLocaleString('zh-CN')
-                            }
-                        });
+                        console.log('文档不支持GetAllDrawingObjects方法');
                     }
-
-                } catch (error) {
-                    console.log('❌ 图表点击检测失败:', error);
-                    resolve({
-                        success: false,
-                        error: error.message,
-                        data: {
-                            timestamp: new Date().toLocaleString('zh-CN')
-                        }
-                    });
+                } catch (scanError) {
+                    console.log('🚨 图表扫描失败:', scanError.message);
                 }
 
-            }, { async: false, cb: (res) => resolve(res) });
-        });
+                console.log('🔍 扫描结果 - 找到图表数量:', documentLevelCharts.length);
+
+                const chartDetectionResults = [];
+
+                // 处理找到的图表 - 完全安全模式
+                documentLevelCharts.forEach(function(chartInfo) {
+                    console.log('🔒 安全处理图表:', chartInfo.index);
+
+                    try {
+                        // 完全安全的图表类型定义
+                        let detailedChartType = {
+                            category: 'chart',
+                            specificType: 'chart_detected',
+                            description: '图表（超级安全检测）',
+                            properties: {
+                                superSafeMode: true,
+                                noApiCalls: true
+                            },
+                            confidence: 0.8
+                        };
+
+                        // 基于字符串的简单类型判断
+                        if (chartInfo.elementType && chartInfo.elementType.toLowerCase().includes('chart')) {
+                            detailedChartType.specificType = 'chart_confirmed';
+                            detailedChartType.description = '图表（已确认）';
+                            detailedChartType.confidence = 0.9;
+                        }
+
+                        console.log('📊 超级安全图表类型:', detailedChartType);
+
+                        // 生成安全的唯一标识符
+                        const uniqueId = 'chart_safe_' + chartInfo.drawingIndex + '_' + Date.now();
+
+                        const chartResult = {
+                            chartIndex: chartInfo.index,
+                            chartType: chartInfo.elementType,
+                            detailedChartType: detailedChartType,
+                            uniqueId: uniqueId,
+                            boundData: null,
+                            hasBindingData: false,
+                            isDocumentLevel: true,
+                            drawingIndex: chartInfo.drawingIndex,
+                            superSafeMode: true
+                        };
+
+                        // 🔒 超级安全的数据检查 - 只访问内存存储
+                        console.log('🔒 安全检查内存中的绑定数据...');
+                        console.log('🔍 当前window.chartDataStorage状态:', window.chartDataStorage);
+
+                        if (window.chartDataStorage) {
+                            console.log('📦 内存存储中的所有键:', Object.keys(window.chartDataStorage));
+                            console.log('🎯 当前图表drawingIndex:', chartInfo.drawingIndex);
+
+                            for (const storageKey in window.chartDataStorage) {
+                                const storedData = window.chartDataStorage[storageKey];
+                                console.log('🔍 检查存储键:', storageKey, '数据drawingIndex:', storedData?.drawingIndex);
+
+                                if (storedData && storedData.drawingIndex === chartInfo.drawingIndex) {
+                                    chartResult.boundData = storedData;
+                                    chartResult.hasBindingData = true;
+                                    chartResult.bindingMethod = 'memory-storage';
+                                    console.log('✅ 从内存找到绑定数据:', {
+                                        uniqueId: storedData.uniqueId,
+                                        title: storedData.boundData?.title
+                                    });
+                                    break;
+                                }
+                            }
+                        } else {
+                            console.log('❌ window.chartDataStorage 不存在!');
+                        }
+
+                        if (!chartResult.hasBindingData) {
+                            console.log('⚠️ 图表 ' + chartInfo.index + ' 未找到绑定数据');
+                        }
+
+                        chartDetectionResults.push(chartResult);
+
+                    } catch (processError) {
+                        console.log('🚨 处理图表失败，添加基础记录:', processError.message);
+
+                        // 添加一个最基础的记录
+                        chartDetectionResults.push({
+                            chartIndex: chartInfo.index,
+                            chartType: chartInfo.elementType,
+                            detailedChartType: {
+                                category: 'chart',
+                                specificType: 'error_safe',
+                                description: '图表（错误安全模式）',
+                                confidence: 0.5
+                            },
+                            uniqueId: 'chart_error_' + chartInfo.drawingIndex + '_' + Date.now(),
+                            boundData: null,
+                            hasBindingData: false,
+                            isDocumentLevel: true,
+                            drawingIndex: chartInfo.drawingIndex,
+                            errorSafeMode: true
+                        });
+                    }
+                });
+
+                console.log('🔍 图表检测结果汇总:', {
+                    total: chartDetectionResults.length,
+                    withData: chartDetectionResults.filter(c => c.hasBindingData).length
+                });
+
+                // 选择返回的图表 - 优先有数据的图表
+                let targetChart = null;
+                if (chartDetectionResults.length > 0) {
+                    // 优先选择有绑定数据的图表
+                    for (let i = chartDetectionResults.length - 1; i >= 0; i--) {
+                        if (chartDetectionResults[i].hasBindingData) {
+                            targetChart = chartDetectionResults[i];
+                            break;
+                        }
+                    }
+                    // 如果没有有数据的图表，选择最后一个
+                    if (!targetChart) {
+                        targetChart = chartDetectionResults[chartDetectionResults.length - 1];
+                    }
+                }
+
+                // 返回结果
+                if (targetChart && targetChart.hasBindingData) {
+                    const result = {
+                        success: true,
+                        message: 'Chart with bound data detected in super safe mode',
+                        data: {
+                            clickType: 'chart',
+                            chartInfo: targetChart,
+                            boundData: targetChart.boundData.boundData || targetChart.boundData,
+                            bindingMetadata: {
+                                bindingId: targetChart.boundData.bindingId,
+                                boundAt: targetChart.boundData.boundAt,
+                                bindingMethod: targetChart.bindingMethod
+                            },
+                            detectionSummary: {
+                                totalChartsFound: chartDetectionResults.length,
+                                chartsWithData: chartDetectionResults.filter(c => c.hasBindingData).length,
+                                safeMode: true
+                            },
+                            timestamp: new Date().toLocaleString('zh-CN')
+                        }
+                    };
+
+                    console.log('✅ 超级安全模式检测到图表点击，包含绑定数据!');
+                    console.log('📊 图表标题:', result.data.boundData?.title);
+                    console.log('📊 图表类型:', result.data.boundData?.type);
+                    console.log('📊 数据源:', result.data.boundData?.dataSource);
+
+                    return result;
+
+                } else if (chartDetectionResults.length > 0) {
+                    // 有图表但没有绑定数据
+                    console.log('⚠️ 检测到图表但无绑定数据');
+                    return {
+                        success: true,
+                        message: 'Chart detected but no bound data',
+                        data: {
+                            clickType: 'chart',
+                            chartInfo: targetChart || chartDetectionResults[0],
+                            boundData: null,
+                            detectionSummary: {
+                                totalChartsFound: chartDetectionResults.length,
+                                chartsWithData: 0,
+                                safeMode: true
+                            },
+                            timestamp: new Date().toLocaleString('zh-CN')
+                        }
+                    };
+
+                } else {
+                    // 没有检测到图表
+                    console.log('⚠️ 文档中未检测到图表');
+                    return {
+                        success: false,
+                        error: 'No charts found in document',
+                        data: {
+                            clickType: 'other',
+                            safeMode: true,
+                            timestamp: new Date().toLocaleString('zh-CN')
+                        }
+                    };
+                }
+
+            } catch (error) {
+                console.log('❌ 超级安全模式图表点击检测失败:', error);
+                return {
+                    success: false,
+                    error: error.message,
+                    data: {
+                        safeMode: true,
+                        timestamp: new Date().toLocaleString('zh-CN')
+                    }
+                };
+            }
+        `;
+
+        // 使用new Function执行完全隔离的安全代码
+        const dynamicFunction = new Function(funcStr);
+        return this.editor.runInDoc(dynamicFunction);
     }
 
     /**
