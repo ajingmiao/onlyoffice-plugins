@@ -18,7 +18,9 @@
       "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/app/container.js\")",
       "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/app/lifecycle.js\")",
       "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/bridge/plugin-bridge.js\")",
-      "Bash(curl -I http://localhost:9998/web-apps/apps/api/documents/api.js)"
+      "Bash(curl -I http://localhost:9998/web-apps/apps/api/documents/api.js)",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/services/chart-type-detector.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/services/chart-data-binder.js\")"
     ],
     "deny": [],
     "ask": []

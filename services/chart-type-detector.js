@@ -248,9 +248,56 @@ export class ChartTypeDetector {
      * 分析图表方法
      */
     _analyzeChartMethods(element, chartMethods) {
+        // 首先特别尝试GetPrevChart方法（根据成功经验优先使用）
+        try {
+            if (typeof element.GetPrevChart === 'function') {
+                console.log('🔍 优先尝试GetPrevChart方法');
+
+                // 添加安全检查，避免触发SDK内部错误
+                let prevChart;
+                try {
+                    prevChart = element.GetPrevChart();
+                } catch (sdkError) {
+                    console.log('GetPrevChart触发SDK内部错误，跳过:', sdkError.message);
+                    return { success: false, error: 'SDK_INTERNAL_ERROR' };
+                }
+
+                if (prevChart && typeof prevChart.GetChartType === 'function') {
+                    try {
+                        const chartType = prevChart.GetChartType();
+                        if (chartType) {
+                            console.log('✅ 通过GetPrevChart获得准确图表类型:', chartType);
+                            return {
+                                success: true,
+                                chartType: chartType,
+                                method: 'GetPrevChart.GetChartType'
+                            };
+                        }
+                    } catch (chartTypeError) {
+                        console.log('GetChartType调用失败:', chartTypeError.message);
+                    }
+                }
+            }
+        } catch (prevChartError) {
+            console.log('调用GetPrevChart失败:', prevChartError.message);
+            // 如果是SDK内部错误，直接返回失败，不继续尝试其他方法
+            if (prevChartError.message && prevChartError.message.includes('ra')) {
+                console.log('检测到SDK内部错误，停止图表方法分析');
+                return { success: false, error: 'SDK_INTERNAL_ERROR' };
+            }
+        }
+
+        // 然后尝试其他图表方法，但要更加小心
         for (const chartMethod of chartMethods) {
+            // 跳过可能有问题的方法
+            if (chartMethod.toLowerCase().includes('prev') ||
+                chartMethod.toLowerCase().includes('chart')) {
+                console.log('🚨 跳过可能有问题的方法:', chartMethod);
+                continue;
+            }
+
             try {
-                console.log('🔍 尝试调用图表方法:', chartMethod);
+                console.log('🔍 谨慎尝试调用图表方法:', chartMethod);
                 const chartResult = element[chartMethod]();
                 if (chartResult && typeof chartResult === 'object') {
                     console.log('📊 ' + chartMethod + ' 返回对象:', chartResult);
@@ -274,6 +321,11 @@ export class ChartTypeDetector {
                 }
             } catch (methodError) {
                 console.log('调用' + chartMethod + '失败:', methodError.message);
+                // 如果遇到SDK内部错误，停止进一步尝试
+                if (methodError.message && methodError.message.includes('ra')) {
+                    console.log('检测到SDK内部错误，停止图表方法分析');
+                    break;
+                }
             }
         }
         return { success: false };
@@ -393,6 +445,7 @@ export class ChartTypeDetector {
      */
     _getChartTypeDescription(chartType) {
         const descriptions = {
+            // 基本图表类型
             pie: '饼图',
             bar: '柱状图',
             column: '柱状图',
@@ -400,9 +453,97 @@ export class ChartTypeDetector {
             area: '面积图',
             scatter: '散点图',
             bubble: '气泡图',
-            doughnut: '环形图'
+            doughnut: '环形图',
+
+            // 复合图表类型
+            areaStacked: '堆叠面积图',
+            barStacked: '堆叠柱状图',
+            columnStacked: '堆叠柱状图',
+            lineStacked: '堆叠折线图',
+
+            // 3D图表类型
+            pie3D: '3D饼图',
+            bar3D: '3D柱状图',
+            column3D: '3D柱状图',
+            line3D: '3D折线图',
+
+            // 其他特殊类型
+            radar: '雷达图',
+            stock: '股价图',
+            surface: '曲面图',
+            histogram: '直方图'
         };
 
         return descriptions[chartType] || `图表 (${chartType})`;
+    }
+
+    /**
+     * 生成图表唯一标识符
+     * @param {Object} element - 图表元素
+     * @param {string} elementType - 元素类型
+     * @param {number} index - 图表索引
+     * @returns {string} 唯一标识符
+     */
+    generateChartUniqueId(element, elementType, index) {
+        const components = [];
+
+        // 1. 基于索引
+        components.push(`idx_${index}`);
+
+        // 2. 基于元素类型
+        components.push(`type_${elementType}`);
+
+        // 3. 尝试获取图表内部ID或哈希
+        try {
+            // 尝试获取图表的内部标识
+            if (typeof element.GetId === 'function') {
+                const id = element.GetId();
+                if (id) {
+                    components.push(`id_${id}`);
+                }
+            }
+
+            // 尝试获取图表的哈希值
+            if (typeof element.GetHash === 'function') {
+                const hash = element.GetHash();
+                if (hash) {
+                    components.push(`hash_${hash}`);
+                }
+            }
+
+            // 尝试获取图表的GUID
+            if (typeof element.GetGUID === 'function') {
+                const guid = element.GetGUID();
+                if (guid) {
+                    components.push(`guid_${guid}`);
+                }
+            }
+
+        } catch (error) {
+            console.log('获取图表内部标识失败:', error.message);
+        }
+
+        // 4. 基于尺寸生成指纹
+        try {
+            if (typeof element.GetWidth === 'function' && typeof element.GetHeight === 'function') {
+                const width = element.GetWidth();
+                const height = element.GetHeight();
+                if (width && height) {
+                    const sizeFingerprint = Math.abs((width * height) % 10000);
+                    components.push(`size_${sizeFingerprint}`);
+                }
+            }
+        } catch (error) {
+            console.log('获取图表尺寸失败:', error.message);
+        }
+
+        // 5. 基于创建时间戳
+        components.push(`ts_${Date.now()}`);
+
+        // 生成最终的唯一标识符
+        const uniqueId = `chart_${components.join('_')}`;
+
+        console.log('🆔 生成图表唯一标识符:', uniqueId);
+        return uniqueId;
     }
 }
