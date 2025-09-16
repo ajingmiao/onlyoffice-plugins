@@ -11,7 +11,14 @@
       "Bash(node --check app/lifecycle.js)",
       "Bash(curl -I http://222.187.11.98:8918/web-apps/apps/api/documents/api.js)",
       "Bash(node --check bridge/plugin-bridge.js)",
-      "Bash(node --check services/chart-binding-service.js)"
+      "Bash(node --check services/chart-binding-service.js)",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/services/chart-binding-service.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/app/command-bus.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/plugin.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/app/container.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/app/lifecycle.js\")",
+      "Bash(node --check \"F:/code/onlyoffice-plugins/demo-a/bridge/plugin-bridge.js\")",
+      "Bash(curl -I http://localhost:9998/web-apps/apps/api/documents/api.js)"
     ],
     "deny": [],
     "ask": []

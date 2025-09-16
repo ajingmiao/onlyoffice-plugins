@@ -204,6 +204,8 @@ export class CommandBus {
 
       case COMMANDS.BIND_CHART_DATA: {
         const chartResult = await this.chartBinding.bindDataToChart(data);
+        // 清理临时数据
+        this.chartBinding.cleanupTempData();
         if (chartResult && chartResult.success) {
           return { ok: true, data: chartResult };
         } else {
