@@ -234,25 +234,13 @@ export class SelectionBindingService {
 
                         console.log('Content Control创建成功，开始设置内容...');
 
-                        // 设置绑定数据
-                        var bindingMetadata = {
-                            type: 'data-binding',
-                            bindingType: scope.bindingType,
-                            fieldName: scope.fieldName,
-                            dataType: scope.dataType,
-                            originalValue: originalText,
-                            boundAt: new Date().toISOString()
-                        };
-
-                        var tagData = 'binding-data:' + JSON.stringify(bindingMetadata);
-
                         // 先设置Tag和Alias
                         if (typeof sdt.SetTag === 'function') {
-                            sdt.SetTag(tagData);
+                            sdt.SetTag(scope.fieldName);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
-                            sdt.SetAlias('数据绑定: ' + scope.fieldName + ' (' + scope.dataType + ')');
+                            sdt.SetAlias(scope.fieldName);
                         }
 
                         // 使用更简洁的方式设置内容和样式
@@ -317,20 +305,17 @@ export class SelectionBindingService {
 
                         var variableName = scope.metadata.variable || scope.fieldName;
                         var bindingMetadata = {
-                            type: 'template-variable',
-                            variableName: variableName,
-                            originalValue: originalText,
-                            boundAt: new Date().toISOString()
+                            variableName: variableName
                         };
 
-                        var tagData = 'template-var:' + JSON.stringify(bindingMetadata);
+                        var tagData = JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
-                            sdt.SetAlias('模板变量: ' + variableName);
+                            sdt.SetAlias(variableName);
                         }
 
                         // 直接添加文本

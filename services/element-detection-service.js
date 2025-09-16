@@ -28,11 +28,12 @@ export class ElementDetectionService {
                 }
 
                 // 获取选区信息
-                var startPos = range.GetStart();
-                var endPos = range.GetEnd();
+                var rangeText = '';
+                if (typeof range.GetText === 'function') {
+                    rangeText = range.GetText();
+                }
 
-                console.log('选区起始位置:', startPos);
-                console.log('选区结束位置:', endPos);
+                console.log('选区文本内容:', rangeText);
 
                 // 尝试检测各种元素类型
                 var detectionResults = {
@@ -91,30 +92,7 @@ export class ElementDetectionService {
                                                     if (cell && typeof cell.GetContent === 'function') {
                                                         var cellContent = cell.GetContent();
                                                         if (cellContent) {
-                                                            // 尝试检测选区是否在此单元格内
-                                                            try {
-                                                                var cellRange = cellContent.GetRange();
-                                                                if (cellRange) {
-                                                                    var cellStart = cellRange.GetStart();
-                                                                    var cellEnd = cellRange.GetEnd();
-
-                                                                    // 简单的位置比较来判断是否点击了此单元格
-                                                                    if (startPos && cellStart &&
-                                                                        startPos.toString() === cellStart.toString()) {
-                                                                        tableInfo.clickedCell = {
-                                                                            row: r,
-                                                                            column: c,
-                                                                            rowIndex: r + 1, // 用户友好的行号
-                                                                            columnIndex: c + 1 // 用户友好的列号
-                                                                        };
-                                                                        console.log(`✅ 检测到点击的单元格: [${r+1}, ${c+1}]`);
-                                                                    }
-                                                                }
-                                                            } catch (rangeError) {
-                                                                // 忽略范围检测错误
-                                                            }
-
-                                                            // 提取单元格文本
+                                                            // 提取单元格文本内容
                                                             if (typeof cellContent.GetElementsCount === 'function') {
                                                                 var elemCount = cellContent.GetElementsCount();
                                                                 for (var e = 0; e < elemCount; e++) {
@@ -278,8 +256,8 @@ export class ElementDetectionService {
                         elementType: 'document',
                         hasSelection: !!range,
                         selectionInfo: range ? {
-                            start: startPos ? startPos.toString() : 'unknown',
-                            end: endPos ? endPos.toString() : 'unknown'
+                            text: rangeText,
+                            hasText: rangeText.length > 0
                         } : null,
                         metadata: {
                             detectedAt: new Date().toLocaleString('zh-CN'),

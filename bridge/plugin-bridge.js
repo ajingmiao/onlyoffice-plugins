@@ -18,9 +18,8 @@ export class PluginBridge {
     window.Asc = window.Asc || {};
     window.Asc.plugin = window.Asc.plugin || {};
 
-    // 保留原有的 onClick 事件处理器
     window.Asc.plugin.event_onClick = function(isSelectionUse) {
-      logger.info('🔥 onClick event triggered!', { isSelectionUse });
+      logger.info('onClick event triggered!', { isSelectionUse });
 
       // 获取当前内容控件属性
       window.Asc.plugin.executeMethod("GetCurrentContentControlPr", [], function(obj) {
@@ -28,14 +27,13 @@ export class PluginBridge {
         if (obj && obj.Tag && obj.Tag.startsWith('link-data:')) {
           logger.info('Link content control clicked!');
         }
-        // 在 onClick 中也触发回调，确保元素检测运行
         cb?.();
       });
     };
 
     // 使用 onSelectionChanged 事件（用于光标移动等）
     window.Asc.plugin.event_onSelectionChanged = () => {
-      logger.info('🎯 Selection changed event triggered - running element detection');
+      logger.info('Selection changed event triggered - running element detection');
       cb?.();
     };
 
@@ -45,13 +43,13 @@ export class PluginBridge {
 
       // 监听内容控件变化事件
       window.connector.attachEvent("onChangeContentControl", (obj) => {
-        logger.info('🔥 Content control changed via connector:', obj);
+        logger.info('Content control changed via connector:', obj);
         cb?.();
       });
 
       // 监听目标位置变化（光标移动）
       window.connector.attachEvent("onTargetPositionChanged", (obj) => {
-        logger.info('🔥 Target position changed via connector:', obj);
+        logger.info('Target position changed via connector:', obj);
         cb?.();
       });
     }
