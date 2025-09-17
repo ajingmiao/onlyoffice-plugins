@@ -282,6 +282,14 @@ export class SelectionBindingService {
                             console.log('使用占位符方式设置文本');
                         }
 
+                        // 创建绑定元数据
+                        var bindingMetadata = {
+                            type: 'text-field-binding',
+                            fieldName: scope.fieldName,
+                            dataType: scope.dataType,
+                            originalText: originalText,
+                            boundAt: new Date().toISOString()
+                        };
                         console.log('✅ 文本字段绑定完成');
                         return {
                             success: true,
