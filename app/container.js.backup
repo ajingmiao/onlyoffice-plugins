@@ -10,7 +10,6 @@ import { TableService } from '../services/table-service.js'
 import { SelectionBindingService } from '../services/selection-binding-service.js'
 import { ElementDetectionService } from '../services/element-detection-service.js'
 import { ChartBindingService } from '../services/chart-binding-service.js'
-import { ClickTypeDetector } from '../services/click-type-detector.js'
 import { CommandBus } from './command-bus.js';
 import { EventBus } from './event-bus.js';
 
@@ -27,7 +26,6 @@ export function createContainer() {
   const selectionBinding = new SelectionBindingService(editor)
   const elementDetection = new ElementDetectionService(editor)
   const chartBinding = new ChartBindingService(editor)
-  const clickTypeDetector = new ClickTypeDetector(editor)
   const selection = new SelectionService(plugin, sdt);
 
   const events = new EventBus({ hostBridge: host });
@@ -39,12 +37,11 @@ export function createContainer() {
     tableService: table,
     selectionBindingService: selectionBinding,
     elementDetectionService: elementDetection,
-    chartBindingService: chartBinding,
-    clickTypeDetector: clickTypeDetector,
+    chartBindingService: chartBinding
   });
 
   return {
-    host, plugin, editor, sdt, link, wordart, shape, table, selectionBinding, elementDetection, chartBinding, clickTypeDetector,
+    host, plugin, editor, sdt, link, wordart, shape, table, selectionBinding, elementDetection, chartBinding,
     selection, events, commands
   };
 }

@@ -1,7 +1,7 @@
 import { COMMANDS } from '../core/constants.js';
 
 export class CommandBus {
-  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService, elementDetectionService, chartBindingService }) {
+  constructor({ sdtService, linkService, wordArtService, shapeService, tableService, selectionBindingService, elementDetectionService, chartBindingService, clickTypeDetector }) {
     this.sdt = sdtService;
     this.link = linkService;
     this.wordart = wordArtService;
@@ -10,6 +10,7 @@ export class CommandBus {
     this.selectionBinding = selectionBindingService;
     this.elementDetection = elementDetectionService;
     this.chartBinding = chartBindingService;
+    this.clickTypeDetector = clickTypeDetector;
   }
 
   async dispatch(cmd) {
@@ -228,6 +229,14 @@ export class CommandBus {
           return { ok: true, data: summaryData };
         } else {
           return { ok: false, error: summaryData?.error || 'Chart summary retrieval failed' };
+        }
+      }
+      case COMMANDS.DETECT_CLICK_TYPE: {
+        const clickTypeResult = await this.clickTypeDetector.detectClickType();
+        if (clickTypeResult) {
+          return { ok: true, data: clickTypeResult };
+        } else {
+          return { ok: false, error: 'Click type detection failed' };
         }
       }
 
