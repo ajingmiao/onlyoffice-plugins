@@ -18,7 +18,10 @@ export const COMMANDS = {
     PRECISE_TABLE_CELL_CLICKED: 'preciseTableCellClicked',
     BIND_CHART_DATA: 'bindChartData',
     CHART_CLICKED: 'chartClicked',
-    GET_CHART_SUMMARY: 'getChartSummary'
+    GET_CHART_SUMMARY: 'getChartSummary',
+    UPDATE_BINDING: 'updateBinding',
+    UPDATE_CHART_BINDING: 'updateChartBinding',
+    UPDATE_ROW_BINDING: 'updateRowBinding'
   };
   
   export const EVENTS = {

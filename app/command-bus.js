@@ -240,8 +240,38 @@ export class CommandBus {
         }
       }
 
+       case COMMANDS.UPDATE_BINDING: {
+        const updateResult = await this.selectionBinding.updateBinding(data);
+        if (updateResult && updateResult.success) {
+          return { ok: true, data: updateResult };
+        } else {
+          return { ok: false, error: updateResult?.error || 'Binding update failed' };
+        }
+      }
+
+      case COMMANDS.UPDATE_CHART_BINDING: {
+        const chartUpdateResult = await this.chartBinding.updateChartBinding(data);
+        if (chartUpdateResult && chartUpdateResult.success) {
+          return { ok: true, data: chartUpdateResult };
+        } else {
+          return { ok: false, error: chartUpdateResult?.error || 'Chart binding update failed' };
+        }
+      }
+
+      case COMMANDS.UPDATE_ROW_BINDING: {
+        const rowUpdateResult = await this.selectionBinding.updateRowBinding(data);
+        if (rowUpdateResult && rowUpdateResult.success) {
+          return { ok: true, data: rowUpdateResult };
+        } else {
+          return { ok: false, error: rowUpdateResult?.error || 'Row binding update failed' };
+        }
+      }
+
+
       default:
         return { ok: false, error: 'Unknown command' };
     }
   }
 }
+
+     
