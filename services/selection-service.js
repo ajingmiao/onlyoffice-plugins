@@ -28,8 +28,13 @@ export class SelectionService {
             // 否则尝试检测活动的 SDT
             console.log('🔍 没有内容控件数据，尝试 detectActiveSdt...');
             result = await this.sdt.detectActiveSdt();
+            console.log('🔍 detectActiveSdt 返回结果:', result);
             if (result) {
               result.type = 'sdt-detected';
+              console.log('✅ detectActiveSdt 检测到内容控件');
+            } else {
+              console.log('⚠️ detectActiveSdt 未检测到内容控件，可能是图表或其他元素');
+              result = null;
             }
           }
 
