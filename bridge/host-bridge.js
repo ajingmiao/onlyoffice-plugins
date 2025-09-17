@@ -7,9 +7,27 @@ export class HostBridge {
   }
 
   sendInfo(command, data) {
+    console.log('🏠 HostBridge.sendInfo 被调用:', { command, data });
+    console.log('🔍 Gateway 状态:', {
+      gateway: !!this.gateway,
+      sendInfo: typeof this.gateway?.sendInfo,
+      hasWindow: !!window,
+      hasParent: !!window.parent,
+      hasCommon: !!window.parent?.Common,
+      hasGateway: !!window.parent?.Common?.Gateway
+    });
+
     try {
-      this.gateway?.sendInfo?.({ command, data });
-    } catch (e) {  }
+      if (this.gateway?.sendInfo) {
+        console.log('📤 正在调用 gateway.sendInfo...');
+        this.gateway.sendInfo({ command, data });
+        console.log('✅ gateway.sendInfo 调用成功');
+      } else {
+        console.warn('⚠️ gateway.sendInfo 不可用');
+      }
+    } catch (e) {
+      console.error('❌ gateway.sendInfo 调用异常:', e);
+    }
   }
 
   onInternalCommand(cb) {

@@ -11,6 +11,8 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
   selection.bindSelectionChange(async (res) => {
     logger.info('=== Selection changed ===');
     logger.info('Selection result:', res);
+    logger.info('🚀 lifecycle.js 选择变化回调被触发');
+
     events.emit(EVENTS.SELECTION_CHANGED_FIRED);
     events.emit(EVENTS.ACTIVE_SDT, res);
 
@@ -60,7 +62,13 @@ export function bootstrap({ host, plugin, selection, events, commands }) {
 
         if (elementResult.ok && elementResult.data) {
           logger.info('Element detected, sending to host:', elementResult.data);
-          host.sendInfo('elementClicked', elementResult.data);
+          logger.info('📤 准备调用 host.sendInfo("elementClicked")...');
+          try {
+            host.sendInfo('elementClicked', elementResult.data);
+            logger.info('✅ host.sendInfo("elementClicked") 调用完成');
+          } catch (error) {
+            logger.error('❌ host.sendInfo("elementClicked") 调用失败:', error);
+          }
         } else {
           logger.info('No specific element detected at current selection');
         }

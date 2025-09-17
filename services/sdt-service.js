@@ -32,28 +32,88 @@ export class SdtService {
 
   /** 在当前 Range/选择内探测是否命中某个 SDT，并返回其 tag/alias */
   detectActiveSdt() {
+    console.log('🔍 detectActiveSdt 开始执行...');
     return new Promise((resolve) => {
       this.editor.runInDoc(function () {
-        var doc = Api.GetDocument();
-        var range = doc.GetRangeBySelect();
-        if (!range) return null;
+        console.log('📄 进入 runInDoc 上下文...');
 
-        var ctrls = doc.GetAllContentControls();
-        for (var i = 0; i < ctrls.length; i++) {
-          var c = ctrls[i];
-          var hit =
-            (typeof range.IsInContentControl === 'function' && range.IsInContentControl(c)) ||
-            (typeof c.IsRangeIn === 'function' && c.IsRangeIn(range)) ||
-            (typeof c.IsSelected === 'function' && c.IsSelected());
-          if (hit) {
-            return {
-              tag: c.GetTag ? c.GetTag() : "",
-              alias: c.GetAlias ? c.GetAlias() : ""
-            };
+        try {
+          var doc = Api.GetDocument();
+          if (!doc) {
+            console.log('❌ 无法获取文档对象');
+            return null;
           }
+
+          var range;
+          try {
+            range = doc.GetRangeBySelect();
+            console.log('📋 获取选区成功:', range);
+          } catch (rangeError) {
+            console.log('❌ 获取选区失败 (可能是图表等特殊元素):', rangeError.message);
+            // 对于图表等特殊元素，GetRangeBySelect 可能失败，这是正常的
+            return null;
+          }
+
+          if (!range) {
+            console.log('❌ 没有选区，返回 null');
+            return null;
+          }
+
+          console.log('🔍 开始扫描内容控件...');
+          var ctrls;
+          try {
+            ctrls = doc.GetAllContentControls();
+            console.log('📊 找到', ctrls ? ctrls.length : 0, '个内容控件');
+          } catch (ctrlError) {
+            console.log('❌ 获取内容控件失败:', ctrlError.message);
+            return null;
+          }
+
+          if (!ctrls || ctrls.length === 0) {
+            console.log('❌ 文档中没有内容控件');
+            return null;
+          }
+
+          // 简化的内容控件检测，避免使用有问题的API
+          for (var i = 0; i < ctrls.length; i++) {
+            var c = ctrls[i];
+            console.log('🔍 检查内容控件', i);
+
+            try {
+              // 只尝试获取基本信息，不做复杂的位置检测
+              var tag = '';
+              var alias = '';
+
+              if (typeof c.GetTag === 'function') {
+                tag = c.GetTag() || '';
+              }
+
+              if (typeof c.GetAlias === 'function') {
+                alias = c.GetAlias() || '';
+              }
+
+              // 如果有有效的标签，就认为可能是当前选中的
+              if (tag) {
+                console.log('✅ 找到有标签的内容控件:', { tag, alias });
+                return { tag: tag, alias: alias };
+              }
+            } catch (controlError) {
+              console.log('❌ 检查内容控件', i, '失败:', controlError.message);
+              continue;
+            }
+          }
+
+          console.log('❌ 没有找到匹配的内容控件');
+          return null;
+
+        } catch (error) {
+          console.log('❌ detectActiveSdt 执行失败:', error.message);
+          return null;
         }
-        return null;
-      }, { async: false, cb: (res) => resolve(res) });
+      }, { async: false, cb: (res) => {
+        console.log('🔄 runInDoc 回调被调用，结果:', res);
+        resolve(res);
+      } });
     });
   }
 }

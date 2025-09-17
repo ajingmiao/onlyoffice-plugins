@@ -234,25 +234,16 @@ export class SelectionBindingService {
 
                         console.log('Content Control创建成功，开始设置内容...');
 
-                        // 设置绑定数据
-                        var bindingMetadata = {
-                            type: 'data-binding',
-                            bindingType: scope.bindingType,
-                            fieldName: scope.fieldName,
-                            dataType: scope.dataType,
-                            originalValue: originalText,
-                            boundAt: new Date().toISOString()
-                        };
-
-                        var tagData = 'binding-data:' + JSON.stringify(bindingMetadata);
-
                         // 先设置Tag和Alias
                         if (typeof sdt.SetTag === 'function') {
-                            sdt.SetTag(tagData);
+                            // 优先使用 metadata.tag，如果没有则使用 fieldName
+                            var tagValue = scope.metadata && scope.metadata.tag ? scope.metadata.tag : scope.fieldName;
+                            sdt.SetTag(tagValue);
+                            console.log('设置SDT Tag:', tagValue);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
-                            sdt.SetAlias('数据绑定: ' + scope.fieldName + ' (' + scope.dataType + ')');
+                            sdt.SetAlias(scope.fieldName);
                         }
 
                         // 使用更简洁的方式设置内容和样式
@@ -317,20 +308,19 @@ export class SelectionBindingService {
 
                         var variableName = scope.metadata.variable || scope.fieldName;
                         var bindingMetadata = {
-                            type: 'template-variable',
-                            variableName: variableName,
-                            originalValue: originalText,
-                            boundAt: new Date().toISOString()
+                            variableName: variableName
                         };
 
-                        var tagData = 'template-var:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用 JSON 格式的绑定数据
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置模板变量 SDT Tag:', tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
-                            sdt.SetAlias('模板变量: ' + variableName);
+                            sdt.SetAlias(variableName);
                         }
 
                         // 直接添加文本
@@ -434,10 +424,12 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'table-binding:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'table-binding:' + JSON.stringify(bindingMetadata);
 
                         if (typeof marker.SetTag === 'function') {
                             marker.SetTag(tagData);
+                            console.log('设置表格绑定 Tag:', tagData);
                         }
 
                         if (typeof marker.SetAlias === 'function') {
@@ -544,10 +536,12 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'paragraph-template:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'paragraph-template:' + JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置段落模板 SDT Tag:', tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
@@ -620,10 +614,12 @@ export class SelectionBindingService {
                             boundAt: new Date().toISOString()
                         };
 
-                        var tagData = 'custom-binding:' + JSON.stringify(bindingMetadata);
+                        // 优先使用 metadata.tag，如果没有则使用默认格式
+                        var tagData = scope.metadata && scope.metadata.tag ? scope.metadata.tag : 'custom-binding:' + JSON.stringify(bindingMetadata);
 
                         if (typeof sdt.SetTag === 'function') {
                             sdt.SetTag(tagData);
+                            console.log('设置自定义绑定 SDT Tag:', tagData);
                         }
 
                         if (typeof sdt.SetAlias === 'function') {
